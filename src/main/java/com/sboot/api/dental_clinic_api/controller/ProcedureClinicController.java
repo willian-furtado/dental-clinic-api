@@ -2,6 +2,7 @@ package com.sboot.api.dental_clinic_api.controller;
 
 import com.sboot.api.dental_clinic_api.dto.ProcedureClinicRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.ProcedureClinicResponseDTO;
+import com.sboot.api.dental_clinic_api.dto.ProcedureClinicStatsDTO;
 import com.sboot.api.dental_clinic_api.service.ProcedureClinicService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -48,4 +49,8 @@ public class ProcedureClinicController {
         return ResponseEntity.ok(service.toggleStatus(id));
     }
 
+    @GetMapping("/stats")
+    public ResponseEntity<ProcedureClinicStatsDTO> getStatistics() {
+        return ResponseEntity.ok(service.getStatistics());
+    }
 }

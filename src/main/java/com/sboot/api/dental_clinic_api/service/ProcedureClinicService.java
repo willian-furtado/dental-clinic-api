@@ -2,6 +2,7 @@ package com.sboot.api.dental_clinic_api.service;
 
 import com.sboot.api.dental_clinic_api.dto.ProcedureClinicRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.ProcedureClinicResponseDTO;
+import com.sboot.api.dental_clinic_api.dto.ProcedureClinicStatsDTO;
 import com.sboot.api.dental_clinic_api.entity.ProcedureClinic;
 import com.sboot.api.dental_clinic_api.mapper.ProcedureClinicMapper;
 import com.sboot.api.dental_clinic_api.repository.ProcedureClinicRepository;
@@ -11,6 +12,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -69,4 +73,15 @@ public class ProcedureClinicService {
         return mapper.toResponse(repository.save(procedure));
     }
 
+    public ProcedureClinicStatsDTO getStatistics() {
+        Long total = repository.countAllProcedures();
+        Long active = repository.countActiveProcedures();
+        var avg = repository.getAveragePrice();
+        if (avg == null) {
+            avg = BigDecimal.ZERO;
+        }
+
+        avg = avg.setScale(2, RoundingMode.HALF_UP);
+        return new ProcedureClinicStatsDTO(total, active, avg);
+    }
 }
