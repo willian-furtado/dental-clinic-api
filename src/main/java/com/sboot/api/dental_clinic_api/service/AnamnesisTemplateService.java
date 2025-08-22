@@ -12,9 +12,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -63,7 +61,7 @@ public class AnamnesisTemplateService {
         if (entity.getQuestions() != null) {
             entity.getQuestions().forEach(q -> {
                 q.setTemplate(entity);
-
+                q.setCreatedAt(LocalDateTime.now());
                 if (q.getOptions() != null) {
                     q.getOptions().forEach(o -> o.setQuestion(q));
                 }
