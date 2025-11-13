@@ -28,15 +28,9 @@ public class PatientDTO {
 
     private String createdAt;
 
-    private String guardianName;
+    private String lastConsultationDate;
 
-    private String guardianCpf;
-
-    private String guardianPhone;
-
-    private String guardianEmail;
-
-    private String guardianRelationship;
+    private GuardianDTO guardian;
 
     private PatientAddressDTO address;
 
@@ -47,4 +41,3 @@ public class PatientDTO {
     private String selectedTemplate;
 
 }
-

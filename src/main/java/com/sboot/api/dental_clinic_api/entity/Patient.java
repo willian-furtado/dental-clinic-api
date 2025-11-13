@@ -37,6 +37,9 @@ public class Patient {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "last_consultation_date")
+    private LocalDateTime lastConsultationDate;
+
     private String guardianName;
 
     private String guardianCpf;
@@ -59,4 +62,3 @@ public class Patient {
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private PatientAnamnesis anamnesisHistory;
 }
-

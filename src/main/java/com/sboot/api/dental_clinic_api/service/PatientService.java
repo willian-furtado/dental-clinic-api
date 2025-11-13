@@ -243,10 +243,18 @@ public class PatientService {
         existing.setEmail(patientDTO.getEmail());
         existing.setBirthDate(patientDTO.getBirthDate());
 
-        existing.setGuardianName(patientDTO.getGuardianName());
-        existing.setGuardianCpf(patientDTO.getGuardianCpf());
-        existing.setGuardianPhone(patientDTO.getGuardianPhone());
-        existing.setGuardianEmail(patientDTO.getGuardianEmail());
-        existing.setGuardianRelationship(patientDTO.getGuardianRelationship());
+        if (patientDTO.getGuardian() != null) {
+            existing.setGuardianName(patientDTO.getGuardian().getName());
+            existing.setGuardianCpf(patientDTO.getGuardian().getCpf());
+            existing.setGuardianPhone(patientDTO.getGuardian().getPhone());
+            existing.setGuardianEmail(patientDTO.getGuardian().getEmail());
+            existing.setGuardianRelationship(patientDTO.getGuardian().getRelationship());
+        } else {
+            existing.setGuardianName(null);
+            existing.setGuardianCpf(null);
+            existing.setGuardianPhone(null);
+            existing.setGuardianEmail(null);
+            existing.setGuardianRelationship(null);
+        }
     }
 }
