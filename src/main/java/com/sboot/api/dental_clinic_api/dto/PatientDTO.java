@@ -18,6 +18,8 @@ public class PatientDTO {
 
     private String cpf;
 
+    private String rg;
+
     private String phone;
 
     private String email;

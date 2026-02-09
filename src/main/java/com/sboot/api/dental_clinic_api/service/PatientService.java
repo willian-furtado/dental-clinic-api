@@ -109,9 +109,8 @@ public class PatientService {
             return result;
         } else {
             log.debug("Searching patients by name or CPF: '{}' with pagination: page={}, size={}", search.trim(), pageable.getPageNumber(), pageable.getPageSize());
-            Page<PatientDTO> result = patientRepository.findByNameOrCpf(pageable, search.trim())
+            return patientRepository.findByNameOrCpf(pageable, search.trim())
                     .map(patientMapper::toDto);
-            return result;
         }
     }
 
@@ -239,6 +238,7 @@ public class PatientService {
     private void updateBasicInfo(Patient existing, PatientDTO patientDTO) {
         existing.setName(patientDTO.getName());
         existing.setCpf(patientDTO.getCpf());
+        existing.setRg(patientDTO.getRg());
         existing.setPhone(patientDTO.getPhone());
         existing.setEmail(patientDTO.getEmail());
         existing.setBirthDate(patientDTO.getBirthDate());

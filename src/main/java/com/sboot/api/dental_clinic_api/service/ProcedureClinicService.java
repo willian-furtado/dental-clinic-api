@@ -15,24 +15,24 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ProcedureClinicService {
+    public static final String GERAL = "Geral";
     private final ProcedureClinicRepository repository;
     private final ProcedureClinicMapper mapper;
 
     public Page<ProcedureClinicResponseDTO> findPageAll(int page, int size, String search) {
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.ASC, "name");
-        Page<ProcedureClinic> result;
-
-        if (search != null && !search.trim().isEmpty()) {
-            result = repository.findByNameContainingIgnoreCaseOrCategoryContainingIgnoreCase(search, search, pageable);
-        } else {
-            result = repository.findAll(pageable);
-        }
-
+        Page<ProcedureClinic> result = repository.findAllProcedures(pageable, search);
         return result.map(mapper::toResponse);
+    }
+
+    public List<ProcedureClinicResponseDTO> findByCategoryNotGeneral() {
+        List<ProcedureClinic> result = repository.findByCategoryNot(GERAL);
+        return result.stream().map(mapper::toResponse).toList();
     }
 
     public ProcedureClinicResponseDTO findById(String id) {

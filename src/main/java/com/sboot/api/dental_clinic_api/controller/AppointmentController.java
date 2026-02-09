@@ -38,4 +38,9 @@ public class AppointmentController {
     public void delete(@PathVariable String id) {
         appointmentService.delete(id);
     }
+
+    @PutMapping("/{id}/confirm")
+    public AppointmentDTO confirm(@PathVariable String id) {
+        return appointmentService.confirmAppointment(id);
+    }
 }

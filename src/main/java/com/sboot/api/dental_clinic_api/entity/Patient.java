@@ -25,6 +25,8 @@ public class Patient {
     @Column(unique = true, nullable = false, length = 14)
     private String cpf;
 
+    private String rg;
+
     private String phone;
     private String email;
 

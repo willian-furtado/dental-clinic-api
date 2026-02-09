@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/procedures-clinic")
@@ -52,5 +53,10 @@ public class ProcedureClinicController {
     @GetMapping("/stats")
     public ResponseEntity<ProcedureClinicStatsDTO> getStatistics() {
         return ResponseEntity.ok(service.getStatistics());
+    }
+
+    @GetMapping("/not-general")
+    public ResponseEntity<List<ProcedureClinicResponseDTO>> getNotGeneral() {
+        return ResponseEntity.ok(service.findByCategoryNotGeneral());
     }
 }

@@ -3,6 +3,7 @@ package com.sboot.api.dental_clinic_api.service;
 import com.sboot.api.dental_clinic_api.dto.AppointmentDTO;
 import com.sboot.api.dental_clinic_api.entity.Appointment;
 import com.sboot.api.dental_clinic_api.entity.Patient;
+import com.sboot.api.dental_clinic_api.enums.AppointmentStatus;
 import com.sboot.api.dental_clinic_api.mapper.AppointmentMapper;
 import com.sboot.api.dental_clinic_api.repository.AppointmentRepository;
 import com.sboot.api.dental_clinic_api.repository.PatientRepository;
@@ -63,5 +64,14 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Appointment not found with id " + id));
         return appointmentMapper.toDto(appointment);
+    }
+
+    public AppointmentDTO confirmAppointment(String id) {
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found with id " + id));
+
+        appointment.setStatus(AppointmentStatus.CONFIRMED);
+        Appointment updated = appointmentRepository.save(appointment);
+        return appointmentMapper.toDto(updated);
     }
 }
