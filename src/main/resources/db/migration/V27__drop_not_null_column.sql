@@ -1,0 +1,1 @@
+ALTER TABLE public.treatment_plan_contract ALTER COLUMN contractor_signature DROP NOT NULL;

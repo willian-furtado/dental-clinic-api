@@ -63,4 +63,7 @@ public class Patient {
 
     @OneToOne(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private PatientAnamnesis anamnesisHistory;
+
+    @OneToMany(mappedBy = "patient", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TreatmentPlan> treatmentPlans;
 }
