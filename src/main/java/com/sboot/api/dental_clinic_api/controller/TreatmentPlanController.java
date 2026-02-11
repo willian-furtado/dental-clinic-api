@@ -22,9 +22,8 @@ public class TreatmentPlanController {
     public ResponseEntity<Page<TreatmentPlanResponseDTO>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String search,
-            @RequestParam(required = false) String status) {
-        return ResponseEntity.ok(service.findPageAll(page, size, search, status));
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(service.findPageAll(page, size, search));
     }
 
     @GetMapping("/{id}")

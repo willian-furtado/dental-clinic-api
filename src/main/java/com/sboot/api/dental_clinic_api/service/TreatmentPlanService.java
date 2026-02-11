@@ -39,9 +39,9 @@ public class TreatmentPlanService {
     private final TreatmentPlanTermsMapper termsMapper;
     private final TreatmentPlanContractMapper contractMapper;
 
-    public Page<TreatmentPlanResponseDTO> findPageAll(int page, int size, String search, String status) {
+    public Page<TreatmentPlanResponseDTO> findPageAll(int page, int size, String search) {
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
-        Page<TreatmentPlan> result = repository.findAllByFilters(search, status, pageable);
+        Page<TreatmentPlan> result = repository.findAllByFilters(search, pageable);
         return result.map(mapper::toResponseDTO);
     }
 

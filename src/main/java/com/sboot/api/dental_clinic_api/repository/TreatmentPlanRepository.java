@@ -17,10 +17,8 @@ public interface TreatmentPlanRepository extends JpaRepository<TreatmentPlan, St
             "WHERE (:search IS NULL OR :search = '' " +
             "OR LOWER(tp.patient.name) LIKE LOWER(CONCAT('%', :search, '%')) " +
             "OR LOWER(tp.patient.cpf) LIKE LOWER(CONCAT('%', :search, '%')) " +
-            "OR CAST(tp.code AS string) LIKE CONCAT('%', :search, '%')) " +
-            "OR (:status IS NULL OR tp.status = :status)")
+            "OR CAST(tp.code AS string) LIKE CONCAT('%', :search, '%')) ")
     Page<TreatmentPlan> findAllByFilters(@Param("search") String search,
-                                         @Param("status") String status,
                                          Pageable pageable);
 
     List<TreatmentPlan> findByPatientId(String patientId);
