@@ -19,7 +19,7 @@ public class AppointmentDTO {
 
     private String patientName;
 
-    private String type;
+    private String procedureClinicId;
 
     private Integer duration;
 

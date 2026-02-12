@@ -11,6 +11,7 @@ public  interface AppointmentMapper {
 
     @Mapping(target = "patientId", source = "patient.id")
     @Mapping(target = "patientName", source = "patient.name")
+    @Mapping(target = "procedureClinicId", source = "procedureClinic.id")
     @Mapping(target = "status", expression = "java(appointment.getStatus().name().toLowerCase())")
     @Mapping(target = "date", expression = "java(appointment.getDate().toString())")
     @Mapping(target = "time", expression = "java(appointment.getTime().toString())")

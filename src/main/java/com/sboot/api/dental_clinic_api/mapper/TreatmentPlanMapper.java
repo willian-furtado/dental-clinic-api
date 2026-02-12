@@ -33,8 +33,6 @@ public abstract class TreatmentPlanMapper {
         dto.setNotes(entity.getNotes());
         dto.setValidUntil(entity.getValidUntil());
         dto.setCreatedBy(entity.getCreatedBy());
-        dto.setPaymentMethod(entity.getPaymentMethod());
-        dto.setInstallments(entity.getInstallments());
         dto.setFinalValue(entity.getFinalValue());
         dto.setPaymentDiscount(entity.getPaymentDiscount());
         dto.setPaymentDiscountType(entity.getPaymentDiscountType());

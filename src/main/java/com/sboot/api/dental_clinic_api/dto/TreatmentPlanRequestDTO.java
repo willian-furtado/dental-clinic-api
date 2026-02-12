@@ -1,8 +1,6 @@
 package com.sboot.api.dental_clinic_api.dto;
 
 import com.sboot.api.dental_clinic_api.enums.PaymentDiscountType;
-import com.sboot.api.dental_clinic_api.enums.PaymentMethod;
-import com.sboot.api.dental_clinic_api.enums.PaymentStatus;
 import com.sboot.api.dental_clinic_api.enums.TreatmentPlanStatus;
 import lombok.*;
 
@@ -26,13 +24,10 @@ public class TreatmentPlanRequestDTO {
     private String notes;
     private LocalDate validUntil;
     private String createdBy;
-    private PaymentMethod paymentMethod;
-    private Integer installments;
     private BigDecimal finalValue;
     private BigDecimal paymentDiscount;
     private PaymentDiscountType paymentDiscountType;
     private BigDecimal paymentDiscountAmount;
     private TreatmentPlanTermsDTO terms;
     private TreatmentPlanContractDTO contract;
-    private PaymentStatus paymentStatus;
 }

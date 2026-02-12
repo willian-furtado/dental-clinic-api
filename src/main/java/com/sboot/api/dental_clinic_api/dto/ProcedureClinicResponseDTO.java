@@ -18,4 +18,5 @@ public class ProcedureClinicResponseDTO {
     private Integer duration;
     private Boolean isActive;
     private LocalDate createdAt;
+    private Boolean requiresBudget;
 }

@@ -16,4 +16,5 @@ public class ProcedureClinicRequestDTO {
     private Integer duration;
     private Boolean isActive;
     private String createdAt;
+    private Boolean requiresBudget;
 }

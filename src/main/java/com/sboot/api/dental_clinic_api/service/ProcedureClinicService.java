@@ -56,6 +56,7 @@ public class ProcedureClinicService {
         procedure.setBasePrice(request.getBasePrice());
         procedure.setDuration(request.getDuration());
         procedure.setIsActive(request.getIsActive());
+        procedure.setRequiresBudget(request.getRequiresBudget());
 
         return mapper.toResponse(repository.save(procedure));
     }

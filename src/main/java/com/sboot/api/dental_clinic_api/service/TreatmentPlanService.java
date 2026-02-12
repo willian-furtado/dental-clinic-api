@@ -3,16 +3,13 @@ package com.sboot.api.dental_clinic_api.service;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
 import com.sboot.api.dental_clinic_api.entity.*;
-import com.sboot.api.dental_clinic_api.enums.PaymentStatus;
+import com.sboot.api.dental_clinic_api.enums.PatientProcedureStatus;
 import com.sboot.api.dental_clinic_api.enums.TreatmentPlanStatus;
 import com.sboot.api.dental_clinic_api.mapper.TreatmentPlanContractMapper;
 import com.sboot.api.dental_clinic_api.mapper.TreatmentPlanMapper;
 import com.sboot.api.dental_clinic_api.mapper.TreatmentPlanProcedureMapper;
 import com.sboot.api.dental_clinic_api.mapper.TreatmentPlanTermsMapper;
-import com.sboot.api.dental_clinic_api.repository.TreatmentPlanContractRepository;
-import com.sboot.api.dental_clinic_api.repository.TreatmentPlanProcedureRepository;
-import com.sboot.api.dental_clinic_api.repository.TreatmentPlanRepository;
-import com.sboot.api.dental_clinic_api.repository.TreatmentPlanTermsRepository;
+import com.sboot.api.dental_clinic_api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -30,10 +27,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TreatmentPlanService {
 
+    public static final String AUTOMATICO = "Automático";
     private final TreatmentPlanRepository repository;
     private final TreatmentPlanProcedureRepository procedureRepository;
     private final TreatmentPlanTermsRepository termsRepository;
     private final TreatmentPlanContractRepository contractRepository;
+    private final PatientProcedureRepository patientProcedureRepository;
     private final TreatmentPlanMapper mapper;
     private final TreatmentPlanProcedureMapper procedureMapper;
     private final TreatmentPlanTermsMapper termsMapper;
@@ -59,10 +58,10 @@ public class TreatmentPlanService {
     @Transactional
     public TreatmentPlanResponseDTO create(TreatmentPlanRequestDTO request) {
         TreatmentPlan entity = mapper.toEntity(request);
-        
+
         Long nextCode = repository.getNextSequenceValue();
         entity.setCode(nextCode);
-        
+
         if (entity.getPatient() == null && request.getPatientId() != null) {
             Patient patient = new Patient();
             patient.setId(request.getPatientId());
@@ -90,10 +89,6 @@ public class TreatmentPlanService {
         }
         entity.setCreatedAt(LocalDateTime.now());
         entity.setValidUntil(LocalDate.now().plusMonths(3));
-        
-        if (entity.getPaymentStatus() == null) {
-            entity.setPaymentStatus(PaymentStatus.pending);
-        }
 
         TreatmentPlan saved = repository.save(entity);
         return mapper.toResponseDTO(saved);
@@ -111,23 +106,20 @@ public class TreatmentPlanService {
         } else {
             existing.getPatient().setId(request.getPatientId());
         }
-        
+
         existing.setSubtotal(request.getSubtotal());
         existing.setTotal(request.getTotal());
         existing.setStatus(request.getStatus());
         existing.setNotes(request.getNotes());
         existing.setValidUntil(request.getValidUntil());
-        existing.setPaymentMethod(request.getPaymentMethod());
-        existing.setInstallments(request.getInstallments());
         existing.setFinalValue(request.getFinalValue());
         existing.setPaymentDiscount(request.getPaymentDiscount());
         existing.setPaymentDiscountType(request.getPaymentDiscountType());
         existing.setPaymentDiscountAmount(request.getPaymentDiscountAmount());
-        existing.setPaymentStatus(request.getPaymentStatus());
 
         if (request.getProcedures() != null) {
             procedureRepository.deleteByTreatmentPlanId(id);
-            
+
             List<TreatmentPlanProcedure> procedures = request.getProcedures().stream()
                     .map(procedureMapper::toEntity)
                     .collect(Collectors.toList());
@@ -168,6 +160,26 @@ public class TreatmentPlanService {
 
         treatmentPlan.setStatus(status);
         TreatmentPlan saved = repository.save(treatmentPlan);
+
+        if (status == TreatmentPlanStatus.approved && saved.getProcedures() != null) {
+            for (TreatmentPlanProcedure procedure : saved.getProcedures()) {
+                PatientProcedure patientProcedure = new PatientProcedure();
+                patientProcedure.setPatient(saved.getPatient());
+                patientProcedure.setTreatmentPlan(saved);
+                patientProcedure.setProcedureClinic(procedure.getProcedureClinic());
+                patientProcedure.setToothNumber(procedure.getToothNumber());
+                patientProcedure.setFaces(procedure.getFaces());
+                patientProcedure.setValue(procedure.getValue());
+                patientProcedure.setStatus(PatientProcedureStatus.planned);
+                patientProcedure.setScheduledDate(null);
+                patientProcedure.setNotes(procedure.getNotes());
+                patientProcedure.setOrigin(AUTOMATICO);
+                patientProcedure.setCreatedAt(LocalDateTime.now());
+
+                patientProcedureRepository.save(patientProcedure);
+            }
+        }
+
         return mapper.toResponseDTO(saved);
     }
 

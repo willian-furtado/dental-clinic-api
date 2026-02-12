@@ -32,8 +32,13 @@ public class Appointment {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @Column(nullable = false, length = 100)
-    private String type;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fk_procedure_clinic_id")
+    private ProcedureClinic procedureClinic;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "patient_procedure_id")
+    private PatientProcedure patientProcedure;
 
     @Column(nullable = false)
     private Integer duration;

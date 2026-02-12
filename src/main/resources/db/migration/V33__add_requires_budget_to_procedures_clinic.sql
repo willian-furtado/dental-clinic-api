@@ -1,0 +1,1 @@
+ALTER TABLE procedures_clinic ADD COLUMN requires_budget BOOLEAN NOT NULL DEFAULT FALSE;

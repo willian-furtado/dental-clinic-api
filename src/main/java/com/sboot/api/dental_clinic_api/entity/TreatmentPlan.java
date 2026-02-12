@@ -1,8 +1,6 @@
 package com.sboot.api.dental_clinic_api.entity;
 
 import com.sboot.api.dental_clinic_api.enums.PaymentDiscountType;
-import com.sboot.api.dental_clinic_api.enums.PaymentMethod;
-import com.sboot.api.dental_clinic_api.enums.PaymentStatus;
 import com.sboot.api.dental_clinic_api.enums.TreatmentPlanStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -52,13 +50,6 @@ public class TreatmentPlan {
     @Column(nullable = false, length = 150)
     private String createdBy;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 30)
-    private PaymentMethod paymentMethod;
-
-    @Column(nullable = false)
-    private Integer installments = 1;
-
     @Column(nullable = false)
     private BigDecimal finalValue;
 
@@ -74,10 +65,6 @@ public class TreatmentPlan {
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private PaymentStatus paymentStatus;
 
     @OneToMany(mappedBy = "treatmentPlan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<TreatmentPlanProcedure> procedures;

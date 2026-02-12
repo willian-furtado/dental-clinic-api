@@ -40,5 +40,8 @@ public class ProcedureClinic {
 
     @Column(nullable = false)
     private LocalDate createdAt;
+
+    @Column(name = "requires_budget", nullable = false)
+    private Boolean requiresBudget = false;
 }
 
