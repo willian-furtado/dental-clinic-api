@@ -14,6 +14,7 @@ public interface PatientProcedureMapper {
     @Mapping(target = "patientName", source = "patient.name")
     @Mapping(target = "treatmentPlanId", source = "treatmentPlan.id")
     @Mapping(target = "procedureClinicId", source = "procedureClinic.id")
+    @Mapping(target = "appointmentId", source = "appointment.id")
     PatientProcedureDTO toDTO(PatientProcedure patientProcedure);
 
     @Mapping(target = "patient", ignore = true)

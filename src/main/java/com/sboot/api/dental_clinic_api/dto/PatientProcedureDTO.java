@@ -26,5 +26,6 @@ public class PatientProcedureDTO {
     private LocalDate scheduledDate;
     private String notes;
     private String origin;
+    private String appointmentId;
     private LocalDateTime createdAt;
 }

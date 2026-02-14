@@ -5,10 +5,12 @@ import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanProcedureDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanTermsDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractDTO;
+import com.sboot.api.dental_clinic_api.dto.PaymentInstallmentDTO;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlan;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlanProcedure;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlanTerms;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlanContract;
+import com.sboot.api.dental_clinic_api.entity.PaymentInstallment;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -42,6 +44,7 @@ public abstract class TreatmentPlanMapper {
         dto.setProcedures(mapProcedures(entity.getProcedures()));
         dto.setTerms(mapTerms(entity.getTerms(), entity.getContract()));
         dto.setContract(mapContract(entity.getContract()));
+        dto.setPaymentInstallments(mapPaymentInstallments(entity.getPaymentInstallments()));
 
         return dto;
     }
@@ -95,6 +98,28 @@ public abstract class TreatmentPlanMapper {
         dto.setContractorSignedBy(contract.getContractorSignedBy());
         dto.setContractorSignatureImage(contract.getContractorSignatureImage());
         dto.setSignatureImage(contract.getSignatureImage());
+        return dto;
+    }
+
+    protected List<PaymentInstallmentDTO> mapPaymentInstallments(List<PaymentInstallment> installments) {
+        if (installments == null) return null;
+        return installments.stream()
+                .map(this::mapPaymentInstallment)
+                .collect(Collectors.toList());
+    }
+
+    protected PaymentInstallmentDTO mapPaymentInstallment(PaymentInstallment installment) {
+        if (installment == null) return null;
+        PaymentInstallmentDTO dto = new PaymentInstallmentDTO();
+        dto.setId(installment.getId());
+        dto.setTreatmentPlanId(installment.getTreatmentPlan() != null ? installment.getTreatmentPlan().getId() : null);
+        dto.setDueDate(installment.getDueDate());
+        dto.setAmount(installment.getAmount());
+        dto.setPaymentMethod(installment.getPaymentMethod());
+        dto.setInstallmentNumber(installment.getInstallmentNumber());
+        dto.setStatus(installment.getStatus());
+        dto.setPaidAt(installment.getPaidAt());
+        dto.setCreatedAt(installment.getCreatedAt());
         return dto;
     }
 }

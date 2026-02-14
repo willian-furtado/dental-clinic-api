@@ -34,5 +34,6 @@ public class TreatmentPlanResponseDTO {
     private BigDecimal paymentDiscountAmount;
     private TreatmentPlanTermsDTO terms;
     private TreatmentPlanContractDTO contract;
+    private List<PaymentInstallmentDTO> paymentInstallments;
     private LocalDateTime createdAt;
 }

@@ -27,5 +27,7 @@ public class AppointmentDTO {
 
     private String notes;
 
+    private String patientProcedureId;
+
     private String createdAt;
 }

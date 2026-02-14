@@ -74,4 +74,7 @@ public class TreatmentPlan {
 
     @OneToOne(mappedBy = "treatmentPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     private TreatmentPlanContract contract;
+
+    @OneToMany(mappedBy = "treatmentPlan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<PaymentInstallment> paymentInstallments;
 }

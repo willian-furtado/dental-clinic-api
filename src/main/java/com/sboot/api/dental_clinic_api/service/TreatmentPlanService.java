@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -142,14 +143,89 @@ public class TreatmentPlanService {
         }
 
         TreatmentPlan saved = repository.save(existing);
+        
+        if (saved.getStatus() == TreatmentPlanStatus.approved && saved.getProcedures() != null && !saved.getProcedures().isEmpty()) {
+            updatePatientProceduresFromTreatmentPlan(saved);
+        }
+        
         return mapper.toResponseDTO(saved);
     }
 
     @Transactional
-    public void delete(String id) {
-        if (!repository.existsById(id)) {
-            throw new RuntimeException("TreatmentPlan not found with id: " + id);
+    private void updatePatientProceduresFromTreatmentPlan(TreatmentPlan treatmentPlan) {
+        patientProcedureRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
+        
+        BigDecimal totalDiscount = treatmentPlan.getPaymentDiscountAmount() != null ? treatmentPlan.getPaymentDiscountAmount() : BigDecimal.ZERO;
+        BigDecimal totalValue = treatmentPlan.getSubtotal() != null ? treatmentPlan.getSubtotal() : BigDecimal.ZERO;
+        String discountType = String.valueOf(treatmentPlan.getPaymentDiscountType());
+        
+        BigDecimal proceduresTotalValue = treatmentPlan.getProcedures().stream()
+                .map(proc -> proc.getValue() != null ? proc.getValue() : BigDecimal.ZERO)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        
+        BigDecimal discountRatio = BigDecimal.ONE;
+        if (totalValue.compareTo(BigDecimal.ZERO) > 0 && proceduresTotalValue.compareTo(BigDecimal.ZERO) > 0) {
+            if ("percentage".equalsIgnoreCase(discountType)) {
+                BigDecimal percentage = totalDiscount.divide(new BigDecimal("100"), 10, java.math.RoundingMode.HALF_UP);
+                discountRatio = BigDecimal.ONE.subtract(percentage);
+            } else {
+                discountRatio = treatmentPlan.getFinalValue().divide(totalValue, 10, java.math.RoundingMode.HALF_UP);
+            }
         }
+        
+        BigDecimal totalDiscountedValue = BigDecimal.ZERO;
+        List<PatientProcedure> patientProcedures = new java.util.ArrayList<>();
+        
+        for (TreatmentPlanProcedure procedure : treatmentPlan.getProcedures()) {
+            PatientProcedure patientProcedure = new PatientProcedure();
+            patientProcedure.setPatient(treatmentPlan.getPatient());
+            patientProcedure.setTreatmentPlan(treatmentPlan);
+            patientProcedure.setProcedureClinic(procedure.getProcedureClinic());
+            patientProcedure.setToothNumber(procedure.getToothNumber());
+            patientProcedure.setFaces(procedure.getFaces());
+            
+            BigDecimal procedureValue = procedure.getValue() != null ? procedure.getValue() : BigDecimal.ZERO;
+            
+            BigDecimal finalProcedureValue = procedureValue.multiply(discountRatio).setScale(2, java.math.RoundingMode.HALF_UP);
+            
+            patientProcedure.setValue(finalProcedureValue);
+            patientProcedure.setStatus(PatientProcedureStatus.planned);
+            patientProcedure.setScheduledDate(null);
+            patientProcedure.setNotes(procedure.getNotes());
+            patientProcedure.setOrigin(AUTOMATICO);
+            patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
+            
+            patientProcedures.add(patientProcedure);
+            totalDiscountedValue = totalDiscountedValue.add(finalProcedureValue);
+        }
+        
+        if (!patientProcedures.isEmpty()) {
+            BigDecimal targetTotal = treatmentPlan.getFinalValue() != null ? treatmentPlan.getFinalValue() : BigDecimal.ZERO;
+            BigDecimal difference = targetTotal.subtract(totalDiscountedValue);
+            
+            if (difference.abs().compareTo(new BigDecimal("0.01")) > 0) {
+                PatientProcedure lastProcedure = patientProcedures.get(patientProcedures.size() - 1);
+                BigDecimal adjustedValue = lastProcedure.getValue().add(difference);
+                lastProcedure.setValue(adjustedValue.setScale(2, java.math.RoundingMode.HALF_UP));
+            }
+            
+            for (PatientProcedure patientProcedure : patientProcedures) {
+                patientProcedureRepository.save(patientProcedure);
+            }
+        }
+    }
+
+    @Transactional
+    public void delete(String id) {
+        TreatmentPlan treatmentPlan = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + id));
+
+        if (treatmentPlan.getProcedures() != null) {
+            for (TreatmentPlanProcedure procedure : treatmentPlan.getProcedures()) {
+                patientProcedureRepository.deleteByTreatmentPlanIdAndProcedureClinicId(id, procedure.getProcedureClinic().getId());
+            }
+        }
+
         repository.deleteById(id);
     }
 
@@ -161,26 +237,10 @@ public class TreatmentPlanService {
         treatmentPlan.setStatus(status);
         TreatmentPlan saved = repository.save(treatmentPlan);
 
-        if (status == TreatmentPlanStatus.approved && saved.getProcedures() != null) {
-            for (TreatmentPlanProcedure procedure : saved.getProcedures()) {
-                PatientProcedure patientProcedure = new PatientProcedure();
-                patientProcedure.setPatient(saved.getPatient());
-                patientProcedure.setTreatmentPlan(saved);
-                patientProcedure.setProcedureClinic(procedure.getProcedureClinic());
-                patientProcedure.setToothNumber(procedure.getToothNumber());
-                patientProcedure.setFaces(procedure.getFaces());
-                patientProcedure.setValue(procedure.getValue());
-                patientProcedure.setStatus(PatientProcedureStatus.planned);
-                patientProcedure.setScheduledDate(null);
-                patientProcedure.setNotes(procedure.getNotes());
-                patientProcedure.setOrigin(AUTOMATICO);
-                patientProcedure.setCreatedAt(LocalDateTime.now());
-
-                patientProcedureRepository.save(patientProcedure);
-            }
+        if (status == TreatmentPlanStatus.approved && saved.getProcedures() != null && !saved.getProcedures().isEmpty()) {
+            updatePatientProceduresFromTreatmentPlan(saved);
         }
 
         return mapper.toResponseDTO(saved);
     }
-
 }

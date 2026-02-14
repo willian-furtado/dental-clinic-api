@@ -50,4 +50,8 @@ public interface PatientProcedureRepository extends JpaRepository<PatientProcedu
                                             @Param("patientId") String patientId,
                                             @Param("budgetId") String budgetId,
                                             Pageable pageable);
+
+    void deleteByTreatmentPlanIdAndProcedureClinicId(String treatmentPlanId, String procedureClinicId);
+
+    void deleteByTreatmentPlanId(String treatmentPlanId);
 }

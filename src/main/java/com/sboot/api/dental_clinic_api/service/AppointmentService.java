@@ -18,6 +18,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
+
 @Service
 @RequiredArgsConstructor
 public class AppointmentService {
@@ -56,9 +58,13 @@ public class AppointmentService {
                 patientProcedure.setScheduledDate(appointment.getDate());
                 patientProcedure.setNotes(appointmentDTO.getNotes());
                 patientProcedure.setOrigin(MANUAL);
+                patientProcedure.setAppointment(saved);
                 patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
                 
-                patientProcedureRepository.save(patientProcedure);
+                PatientProcedure savedPatientProcedure = patientProcedureRepository.save(patientProcedure);
+                
+                saved.setPatientProcedure(savedPatientProcedure);
+                appointmentRepository.save(saved);
             }
         }
         
@@ -88,14 +94,24 @@ public class AppointmentService {
         existing.setStatus(AppointmentStatus.valueOf(appointmentDTO.getStatus().toUpperCase()));
         existing.setNotes(appointmentDTO.getNotes());
 
+        if (Objects.equals(appointmentDTO.getStatus(), "cancelled") && existing.getPatientProcedure() != null) {
+            PatientProcedure patientProcedure = existing.getPatientProcedure();
+            patientProcedure.setStatus(PatientProcedureStatus.cancelled);
+            patientProcedureRepository.save(patientProcedure);
+        }
+
         Appointment updated = appointmentRepository.save(existing);
         return appointmentMapper.toDto(updated);
     }
 
     public void delete(String id) {
-        if (!appointmentRepository.existsById(id)) {
-            throw new RuntimeException("Appointment not found with id " + id);
+        Appointment appointment = appointmentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Appointment not found with id " + id));
+        
+        if (appointment.getPatientProcedure() != null) {
+            patientProcedureRepository.delete(appointment.getPatientProcedure());
         }
+        
         appointmentRepository.deleteById(id);
     }
 

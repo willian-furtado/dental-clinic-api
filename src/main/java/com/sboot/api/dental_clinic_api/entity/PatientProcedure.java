@@ -56,6 +56,10 @@ public class PatientProcedure {
     @Column(name = "origin")
     private String origin;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "appointment_id")
+    private Appointment appointment;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
