@@ -98,6 +98,9 @@ public abstract class TreatmentPlanMapper {
         dto.setContractorSignedBy(contract.getContractorSignedBy());
         dto.setContractorSignatureImage(contract.getContractorSignatureImage());
         dto.setSignatureImage(contract.getSignatureImage());
+        dto.setPaymentConditions(contract.getPaymentConditions());
+        dto.setMissedAppointmentFee(contract.getMissedAppointmentFee());
+        dto.setMinimumHours(contract.getMinimumHours());
         return dto;
     }
 

@@ -4,10 +4,10 @@ import lombok.Getter;
 @Getter
 public enum TreatmentPlanStatus {
     draft("Rascunho"),
-    pending("Pendente"),
     approved("Aprovado"),
+    waiting_signature("Aguardando assinatura"),
+    signed("Assinado"),
     rejected("Rejeitado"),
-    converted("Convertido"),
     completed("Concluído"),
     cancelled("Cancelado");
 

@@ -59,4 +59,9 @@ public class ProcedureClinicController {
     public ResponseEntity<List<ProcedureClinicResponseDTO>> getNotGeneral() {
         return ResponseEntity.ok(service.findByCategoryNotGeneral());
     }
+
+    @GetMapping("/requires-budget")
+    public ResponseEntity<List<ProcedureClinicResponseDTO>> getRequiresBudget() {
+        return ResponseEntity.ok(service.findByRequiresBudgetTrue());
+    }
 }

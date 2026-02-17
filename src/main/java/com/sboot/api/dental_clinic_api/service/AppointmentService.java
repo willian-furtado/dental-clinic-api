@@ -33,42 +33,82 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentDTO save(AppointmentDTO appointmentDTO) {
-        Patient patient = patientRepository.findById(appointmentDTO.getPatientId())
+        Patient patient = findPatientById(appointmentDTO.getPatientId());
+        Appointment appointment = createAppointment(appointmentDTO, patient);
+        Appointment saved = appointmentRepository.save(appointment);
+
+        handlePatientProcedure(appointmentDTO, appointment, saved, patient);
+
+        return appointmentMapper.toDto(saved);
+    }
+
+    private Patient findPatientById(String patientId) {
+        return patientRepository.findById(patientId)
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
-        
+    }
+
+    private Appointment createAppointment(AppointmentDTO appointmentDTO, Patient patient) {
         Appointment appointment = appointmentMapper.toEntity(appointmentDTO);
         appointment.setPatient(patient);
-        
+
+        if (appointmentDTO.getPatientProcedureId() != null) {
+            PatientProcedure patientProcedure = patientProcedureRepository.findById(appointmentDTO.getPatientProcedureId())
+                    .orElseThrow(() -> new RuntimeException("Patient Procedure not found"));
+            appointment.setPatientProcedure(patientProcedure);
+        }
+
         if (appointmentDTO.getProcedureClinicId() != null) {
-            ProcedureClinic procedureClinic = procedureClinicRepository.findById(appointmentDTO.getProcedureClinicId())
-                    .orElseThrow(() -> new RuntimeException("Procedure Clinic not found"));
+            ProcedureClinic procedureClinic = findProcedureClinicById(appointmentDTO.getProcedureClinicId());
             appointment.setProcedureClinic(procedureClinic);
         }
-        
-        Appointment saved = appointmentRepository.save(appointment);
-        
-        if (appointmentDTO.getProcedureClinicId() != null) {
-            ProcedureClinic procedureClinic = appointment.getProcedureClinic();
-            if (procedureClinic != null && !procedureClinic.getRequiresBudget()) {
-                PatientProcedure patientProcedure = new PatientProcedure();
-                patientProcedure.setPatient(patient);
-                patientProcedure.setProcedureClinic(procedureClinic);
-                patientProcedure.setStatus(PatientProcedureStatus.planned);
-                patientProcedure.setValue(procedureClinic.getBasePrice());
-                patientProcedure.setScheduledDate(appointment.getDate());
-                patientProcedure.setNotes(appointmentDTO.getNotes());
-                patientProcedure.setOrigin(MANUAL);
-                patientProcedure.setAppointment(saved);
-                patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
-                
-                PatientProcedure savedPatientProcedure = patientProcedureRepository.save(patientProcedure);
-                
-                saved.setPatientProcedure(savedPatientProcedure);
-                appointmentRepository.save(saved);
-            }
+
+        return appointment;
+    }
+
+    private ProcedureClinic findProcedureClinicById(String procedureClinicId) {
+        return procedureClinicRepository.findById(procedureClinicId)
+                .orElseThrow(() -> new RuntimeException("Procedure Clinic not found"));
+    }
+
+    private void handlePatientProcedure(AppointmentDTO appointmentDTO, Appointment appointment, Appointment saved, Patient patient) {
+        if (appointmentDTO.getPatientProcedureId() != null) {
+            updateExistingPatientProcedure(appointmentDTO.getPatientProcedureId(), appointment);
+        } else if (appointmentDTO.getProcedureClinicId() != null) {
+            createNewPatientProcedure(appointment, saved, patient, appointmentDTO.getNotes());
         }
-        
-        return appointmentMapper.toDto(saved);
+    }
+
+    private void updateExistingPatientProcedure(String patientProcedureId, Appointment appointment) {
+        PatientProcedure patientProcedure = patientProcedureRepository.findById(patientProcedureId)
+                .orElseThrow(() -> new RuntimeException("Patient Procedure not found"));
+        patientProcedure.setScheduledDate(appointment.getDate());
+        patientProcedure.setAppointment(appointment);
+        patientProcedureRepository.save(patientProcedure);
+    }
+
+    private void createNewPatientProcedure(Appointment appointment, Appointment saved, Patient patient, String notes) {
+        ProcedureClinic procedureClinic = appointment.getProcedureClinic();
+        if (procedureClinic != null && !procedureClinic.getRequiresBudget()) {
+            PatientProcedure patientProcedure = buildPatientProcedure(patient, procedureClinic, appointment.getDate(), notes, saved);
+            PatientProcedure savedPatientProcedure = patientProcedureRepository.save(patientProcedure);
+            saved.setPatientProcedure(savedPatientProcedure);
+            appointmentRepository.save(saved);
+        }
+    }
+
+    private PatientProcedure buildPatientProcedure(Patient patient, ProcedureClinic procedureClinic,
+                                                   java.time.LocalDate scheduledDate, String notes, Appointment appointment) {
+        PatientProcedure patientProcedure = new PatientProcedure();
+        patientProcedure.setPatient(patient);
+        patientProcedure.setProcedureClinic(procedureClinic);
+        patientProcedure.setStatus(PatientProcedureStatus.planned);
+        patientProcedure.setValue(procedureClinic.getBasePrice());
+        patientProcedure.setScheduledDate(scheduledDate);
+        patientProcedure.setNotes(notes);
+        patientProcedure.setOrigin(MANUAL);
+        patientProcedure.setAppointment(appointment);
+        patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
+        return patientProcedure;
     }
 
     public AppointmentDTO update(String id, AppointmentDTO appointmentDTO) {
@@ -77,11 +117,11 @@ public class AppointmentService {
 
         Patient patient = patientRepository.findById(appointmentDTO.getPatientId())
                 .orElseThrow(() -> new RuntimeException("Patient not found"));
-        
+
         existing.setDate(appointmentDTO.getDate() != null ? java.time.LocalDate.parse(appointmentDTO.getDate()) : existing.getDate());
         existing.setTime(appointmentDTO.getTime() != null ? java.time.LocalTime.parse(appointmentDTO.getTime()) : existing.getTime());
         existing.setPatient(patient);
-        
+
         if (appointmentDTO.getProcedureClinicId() != null) {
             ProcedureClinic procedureClinic = procedureClinicRepository.findById(appointmentDTO.getProcedureClinicId())
                     .orElseThrow(() -> new RuntimeException("Procedure Clinic not found"));
@@ -89,7 +129,7 @@ public class AppointmentService {
         } else {
             existing.setProcedureClinic(null);
         }
-        
+
         existing.setDuration(appointmentDTO.getDuration());
         existing.setStatus(AppointmentStatus.valueOf(appointmentDTO.getStatus().toUpperCase()));
         existing.setNotes(appointmentDTO.getNotes());
@@ -101,17 +141,20 @@ public class AppointmentService {
         }
 
         Appointment updated = appointmentRepository.save(existing);
+        if (appointmentDTO.getPatientProcedureId() != null) {
+            updateExistingPatientProcedure(appointmentDTO.getPatientProcedureId(), updated);
+        }
         return appointmentMapper.toDto(updated);
     }
 
     public void delete(String id) {
         Appointment appointment = appointmentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Appointment not found with id " + id));
-        
+
         if (appointment.getPatientProcedure() != null) {
             patientProcedureRepository.delete(appointment.getPatientProcedure());
         }
-        
+
         appointmentRepository.deleteById(id);
     }
 

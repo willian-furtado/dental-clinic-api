@@ -20,4 +20,7 @@ public class TreatmentPlanContractDTO {
     private String contractorSignedBy;
     private String contractorSignatureImage;
     private String signatureImage;
+    private String paymentConditions;
+    private String missedAppointmentFee;
+    private String minimumHours;
 }

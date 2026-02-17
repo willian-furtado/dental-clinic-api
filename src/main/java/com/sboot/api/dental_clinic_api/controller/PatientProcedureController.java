@@ -1,6 +1,7 @@
 package com.sboot.api.dental_clinic_api.controller;
 
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureDTO;
+import com.sboot.api.dental_clinic_api.dto.PatientProcedureResponseDTO;
 import com.sboot.api.dental_clinic_api.service.PatientProcedureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -23,13 +24,13 @@ public class PatientProcedureController {
     }
 
     @GetMapping
-    public ResponseEntity<Page<PatientProcedureDTO>> findAll(
+    public ResponseEntity<Page<PatientProcedureResponseDTO>> findAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String patientId,
             @RequestParam(required = false) String budgetId) {
-        Page<PatientProcedureDTO> patientProcedures = patientProcedureService.findAll(page, size, search, patientId, budgetId);
+        Page<PatientProcedureResponseDTO> patientProcedures = patientProcedureService.findAllWithDetails(page, size, search, patientId, budgetId);
         return ResponseEntity.ok(patientProcedures);
     }
 
@@ -103,5 +104,13 @@ public class PatientProcedureController {
     public ResponseEntity<Void> deleteById(@PathVariable String id) {
         patientProcedureService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<PatientProcedureDTO> updateStatus(
+            @PathVariable String id,
+            @RequestParam String status) {
+        PatientProcedureDTO updatedPatientProcedure = patientProcedureService.updateStatus(id, status);
+        return ResponseEntity.ok(updatedPatientProcedure);
     }
 }

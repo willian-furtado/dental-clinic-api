@@ -1,5 +1,6 @@
 package com.sboot.api.dental_clinic_api.controller;
 
+import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractTermsDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
 import com.sboot.api.dental_clinic_api.enums.TreatmentPlanStatus;
@@ -55,6 +56,13 @@ public class TreatmentPlanController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<TreatmentPlanResponseDTO> updateStatus(@PathVariable String id, @RequestParam TreatmentPlanStatus status) {
         return ResponseEntity.ok(service.updateStatus(id, status));
+    }
+
+    @PostMapping("/{id}/contract-terms")
+    public ResponseEntity<TreatmentPlanResponseDTO> saveContractAndTerms(
+            @PathVariable String id,
+            @RequestBody TreatmentPlanContractTermsDTO request) {
+        return ResponseEntity.ok(service.saveContractAndTerms(id, request.getTerms(), request.getContract()));
     }
 
 }

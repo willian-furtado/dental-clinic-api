@@ -1,7 +1,9 @@
 package com.sboot.api.dental_clinic_api.service;
 
+import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
+import com.sboot.api.dental_clinic_api.dto.TreatmentPlanTermsDTO;
 import com.sboot.api.dental_clinic_api.entity.*;
 import com.sboot.api.dental_clinic_api.enums.PatientProcedureStatus;
 import com.sboot.api.dental_clinic_api.enums.TreatmentPlanStatus;
@@ -38,6 +40,7 @@ public class TreatmentPlanService {
     private final TreatmentPlanProcedureMapper procedureMapper;
     private final TreatmentPlanTermsMapper termsMapper;
     private final TreatmentPlanContractMapper contractMapper;
+    private final ContractContentGenerator contractContentGenerator;
 
     public Page<TreatmentPlanResponseDTO> findPageAll(int page, int size, String search) {
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
@@ -77,17 +80,6 @@ public class TreatmentPlanService {
             entity.setProcedures(procedures);
         }
 
-        if (request.getTerms() != null) {
-            TreatmentPlanTerms terms = termsMapper.toEntity(request.getTerms());
-            terms.setTreatmentPlan(entity);
-            entity.setTerms(terms);
-        }
-
-        if (request.getContract() != null) {
-            TreatmentPlanContract contract = contractMapper.toEntity(request.getContract());
-            contract.setTreatmentPlan(entity);
-            entity.setContract(contract);
-        }
         entity.setCreatedAt(LocalDateTime.now());
         entity.setValidUntil(LocalDate.now().plusMonths(3));
 
@@ -117,6 +109,7 @@ public class TreatmentPlanService {
         existing.setPaymentDiscount(request.getPaymentDiscount());
         existing.setPaymentDiscountType(request.getPaymentDiscountType());
         existing.setPaymentDiscountAmount(request.getPaymentDiscountAmount());
+        existing.setStatus(TreatmentPlanStatus.waiting_signature);
 
         if (request.getProcedures() != null) {
             procedureRepository.deleteByTreatmentPlanId(id);
@@ -128,41 +121,33 @@ public class TreatmentPlanService {
             existing.setProcedures(procedures);
         }
 
-        if (request.getTerms() != null) {
-            TreatmentPlanTerms terms = termsMapper.toEntity(request.getTerms());
-            terms.setTreatmentPlan(existing);
-            termsRepository.save(terms);
-            existing.setTerms(terms);
-        }
+        termsRepository.deleteByTreatmentPlanId(existing.getId());
+        contractRepository.deleteByTreatmentPlanId(existing.getId());
 
-        if (request.getContract() != null) {
-            TreatmentPlanContract contract = contractMapper.toEntity(request.getContract());
-            contract.setTreatmentPlan(existing);
-            contractRepository.save(contract);
-            existing.setContract(contract);
-        }
+        existing.setTerms(null);
+        existing.setContract(null);
 
         TreatmentPlan saved = repository.save(existing);
-        
+
         if (saved.getStatus() == TreatmentPlanStatus.approved && saved.getProcedures() != null && !saved.getProcedures().isEmpty()) {
             updatePatientProceduresFromTreatmentPlan(saved);
         }
-        
+
         return mapper.toResponseDTO(saved);
     }
 
     @Transactional
     private void updatePatientProceduresFromTreatmentPlan(TreatmentPlan treatmentPlan) {
         patientProcedureRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
-        
+
         BigDecimal totalDiscount = treatmentPlan.getPaymentDiscountAmount() != null ? treatmentPlan.getPaymentDiscountAmount() : BigDecimal.ZERO;
         BigDecimal totalValue = treatmentPlan.getSubtotal() != null ? treatmentPlan.getSubtotal() : BigDecimal.ZERO;
         String discountType = String.valueOf(treatmentPlan.getPaymentDiscountType());
-        
+
         BigDecimal proceduresTotalValue = treatmentPlan.getProcedures().stream()
                 .map(proc -> proc.getValue() != null ? proc.getValue() : BigDecimal.ZERO)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        
+
         BigDecimal discountRatio = BigDecimal.ONE;
         if (totalValue.compareTo(BigDecimal.ZERO) > 0 && proceduresTotalValue.compareTo(BigDecimal.ZERO) > 0) {
             if ("percentage".equalsIgnoreCase(discountType)) {
@@ -172,10 +157,10 @@ public class TreatmentPlanService {
                 discountRatio = treatmentPlan.getFinalValue().divide(totalValue, 10, java.math.RoundingMode.HALF_UP);
             }
         }
-        
+
         BigDecimal totalDiscountedValue = BigDecimal.ZERO;
         List<PatientProcedure> patientProcedures = new java.util.ArrayList<>();
-        
+
         for (TreatmentPlanProcedure procedure : treatmentPlan.getProcedures()) {
             PatientProcedure patientProcedure = new PatientProcedure();
             patientProcedure.setPatient(treatmentPlan.getPatient());
@@ -183,32 +168,32 @@ public class TreatmentPlanService {
             patientProcedure.setProcedureClinic(procedure.getProcedureClinic());
             patientProcedure.setToothNumber(procedure.getToothNumber());
             patientProcedure.setFaces(procedure.getFaces());
-            
+
             BigDecimal procedureValue = procedure.getValue() != null ? procedure.getValue() : BigDecimal.ZERO;
-            
+
             BigDecimal finalProcedureValue = procedureValue.multiply(discountRatio).setScale(2, java.math.RoundingMode.HALF_UP);
-            
+
             patientProcedure.setValue(finalProcedureValue);
             patientProcedure.setStatus(PatientProcedureStatus.planned);
             patientProcedure.setScheduledDate(null);
             patientProcedure.setNotes(procedure.getNotes());
             patientProcedure.setOrigin(AUTOMATICO);
             patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
-            
+
             patientProcedures.add(patientProcedure);
             totalDiscountedValue = totalDiscountedValue.add(finalProcedureValue);
         }
-        
+
         if (!patientProcedures.isEmpty()) {
             BigDecimal targetTotal = treatmentPlan.getFinalValue() != null ? treatmentPlan.getFinalValue() : BigDecimal.ZERO;
             BigDecimal difference = targetTotal.subtract(totalDiscountedValue);
-            
+
             if (difference.abs().compareTo(new BigDecimal("0.01")) > 0) {
                 PatientProcedure lastProcedure = patientProcedures.get(patientProcedures.size() - 1);
                 BigDecimal adjustedValue = lastProcedure.getValue().add(difference);
                 lastProcedure.setValue(adjustedValue.setScale(2, java.math.RoundingMode.HALF_UP));
             }
-            
+
             for (PatientProcedure patientProcedure : patientProcedures) {
                 patientProcedureRepository.save(patientProcedure);
             }
@@ -241,6 +226,47 @@ public class TreatmentPlanService {
             updatePatientProceduresFromTreatmentPlan(saved);
         }
 
+        return mapper.toResponseDTO(saved);
+    }
+
+    @Transactional
+    public TreatmentPlanResponseDTO saveContractAndTerms(String treatmentPlanId, TreatmentPlanTermsDTO termsDTO, TreatmentPlanContractDTO contractDTO) {
+        TreatmentPlan treatmentPlan = repository.findById(treatmentPlanId)
+                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + treatmentPlanId));
+
+        termsRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
+        contractRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
+        treatmentPlan.setTerms(null);
+        treatmentPlan.setContract(null);
+
+        if (termsDTO != null) {
+            TreatmentPlanTerms terms = termsMapper.toEntity(termsDTO);
+            terms.setTreatmentPlan(treatmentPlan);
+
+            termsRepository.save(terms);
+            treatmentPlan.setTerms(terms);
+        }
+
+        if (contractDTO != null) {
+            TreatmentPlanContract contract = contractMapper.toEntity(contractDTO);
+            contract.setTreatmentPlan(treatmentPlan);
+
+            if (contract.getContractContent() == null || contract.getContractContent().isEmpty()) {
+                String contractContent = contractContentGenerator.generateContractContent(treatmentPlan, contract);
+                contract.setContractContent(contractContent);
+            }
+
+            contractRepository.save(contract);
+            treatmentPlan.setContract(contract);
+
+            if (!Boolean.TRUE.equals(contractDTO.getSigned())) {
+                treatmentPlan.setStatus(TreatmentPlanStatus.waiting_signature);
+            } else {
+                treatmentPlan.setStatus(TreatmentPlanStatus.signed);
+            }
+        }
+
+        TreatmentPlan saved = repository.save(treatmentPlan);
         return mapper.toResponseDTO(saved);
     }
 }

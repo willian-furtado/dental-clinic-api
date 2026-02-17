@@ -35,6 +35,11 @@ public class ProcedureClinicService {
         return result.stream().map(mapper::toResponse).toList();
     }
 
+    public List<ProcedureClinicResponseDTO> findByRequiresBudgetTrue() {
+        List<ProcedureClinic> result = repository.findByRequiresBudgetTrue();
+        return result.stream().map(mapper::toResponse).toList();
+    }
+
     public ProcedureClinicResponseDTO findById(String id) {
         ProcedureClinic procedure = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Procedure not found"));

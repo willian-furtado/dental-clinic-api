@@ -30,7 +30,6 @@ public class PrescriptionService {
         Prescription prescription = prescriptionMapper.toEntity(prescriptionDTO);
         prescription.setPatient(patient);
 
-        // Set prescription reference in medications
         if (prescription.getMedications() != null) {
             prescription.getMedications().forEach(med -> med.setPrescription(prescription));
         }

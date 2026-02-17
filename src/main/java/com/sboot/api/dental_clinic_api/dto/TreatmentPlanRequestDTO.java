@@ -28,6 +28,4 @@ public class TreatmentPlanRequestDTO {
     private BigDecimal paymentDiscount;
     private PaymentDiscountType paymentDiscountType;
     private BigDecimal paymentDiscountAmount;
-    private TreatmentPlanTermsDTO terms;
-    private TreatmentPlanContractDTO contract;
 }

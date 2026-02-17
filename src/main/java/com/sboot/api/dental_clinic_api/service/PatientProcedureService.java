@@ -1,10 +1,12 @@
 package com.sboot.api.dental_clinic_api.service;
 
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureDTO;
+import com.sboot.api.dental_clinic_api.dto.PatientProcedureResponseDTO;
 import com.sboot.api.dental_clinic_api.entity.Patient;
 import com.sboot.api.dental_clinic_api.entity.PatientProcedure;
 import com.sboot.api.dental_clinic_api.entity.ProcedureClinic;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlan;
+import com.sboot.api.dental_clinic_api.enums.PatientProcedureStatus;
 import com.sboot.api.dental_clinic_api.mapper.PatientProcedureMapper;
 import com.sboot.api.dental_clinic_api.repository.PatientProcedureRepository;
 import com.sboot.api.dental_clinic_api.repository.PatientRepository;
@@ -40,10 +42,10 @@ public class PatientProcedureService {
         return patientProcedureMapper.toDTO(patientProcedure);
     }
 
-    public Page<PatientProcedureDTO> findAll(int page, int size, String search, String patientId, String budgetId) {
+    public Page<PatientProcedureResponseDTO> findAllWithDetails(int page, int size, String search, String patientId, String budgetId) {
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
         Page<PatientProcedure> result = patientProcedureRepository.findAllByFilters(search, patientId, budgetId, pageable);
-        return result.map(patientProcedureMapper::toDTO);
+        return result.map(patientProcedureMapper::toResponseDTO);
     }
 
     public List<PatientProcedureDTO> findByPatientId(String patientId) {
@@ -112,9 +114,8 @@ public class PatientProcedureService {
     public PatientProcedureDTO save(PatientProcedureDTO patientProcedureDTO) {
         PatientProcedure patientProcedure = patientProcedureMapper.toEntity(patientProcedureDTO);
 
-        // Set origin based on source
         if (patientProcedureDTO.getTreatmentPlanId() != null) {
-            patientProcedure.setOrigin("Automatic");
+            patientProcedure.setOrigin("Automático");
         } else if (patientProcedureDTO.getProcedureClinicId() != null) {
             patientProcedure.setOrigin("Manual");
         }
@@ -178,5 +179,20 @@ public class PatientProcedureService {
         PatientProcedure patientProcedure = patientProcedureRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("PatientProcedure not found with id: " + id));
         patientProcedureRepository.delete(patientProcedure);
+    }
+
+    public PatientProcedureDTO updateStatus(String id, String status) {
+        PatientProcedure patientProcedure = patientProcedureRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("PatientProcedure not found with id: " + id));
+
+        try {
+            PatientProcedureStatus statusEnum = PatientProcedureStatus.valueOf(status);
+            patientProcedure.setStatus(statusEnum);
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Invalid status: " + status);
+        }
+
+        PatientProcedure updatedPatientProcedure = patientProcedureRepository.save(patientProcedure);
+        return patientProcedureMapper.toDTO(updatedPatientProcedure);
     }
 }

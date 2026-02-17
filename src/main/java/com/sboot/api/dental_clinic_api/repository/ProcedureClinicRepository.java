@@ -24,4 +24,6 @@ public interface ProcedureClinicRepository extends JpaRepository<ProcedureClinic
 
     @Query("SELECT COALESCE(AVG(p.basePrice), 0) FROM ProcedureClinic p")
     BigDecimal getAveragePrice();
+
+    List<ProcedureClinic> findByRequiresBudgetTrue();
 }

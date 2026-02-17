@@ -1,7 +1,10 @@
 package com.sboot.api.dental_clinic_api.controller;
 
+import com.sboot.api.dental_clinic_api.dto.ContractGenerationRequestDTO;
+import com.sboot.api.dental_clinic_api.dto.ContractResponseDTO;
 import com.sboot.api.dental_clinic_api.dto.PatientDTO;
 import com.sboot.api.dental_clinic_api.dto.PatientDocumentDTO;
+import com.sboot.api.dental_clinic_api.service.ContractService;
 import com.sboot.api.dental_clinic_api.service.PatientService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -16,6 +19,7 @@ import java.util.List;
 public class PatientController {
 
     private final PatientService patientService;
+    private final ContractService contractService;
 
     @GetMapping
     public Page<PatientDTO> getAll(Pageable pageable,
@@ -66,6 +70,11 @@ public class PatientController {
     @GetMapping("/birthdays")
     public List<PatientDTO> getTodayBirthdays() {
         return patientService.getTodayBirthdays();
+    }
+
+    @PostMapping("/generate-contract")
+    public ContractResponseDTO generateContract(@RequestBody ContractGenerationRequestDTO request) {
+        return contractService.generateContract(request);
     }
 
 }
