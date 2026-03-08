@@ -47,12 +47,6 @@ public class TreatmentPlanContract {
     @Column(length = 500)
     private String paymentConditions;
 
-    @Column(length = 100)
-    private String missedAppointmentFee;
-
-    @Column(length = 50)
-    private String minimumHours;
-
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "treatment_plan_id", nullable = false)
     private TreatmentPlan treatmentPlan;

@@ -21,6 +21,4 @@ public class TreatmentPlanContractDTO {
     private String contractorSignatureImage;
     private String signatureImage;
     private String paymentConditions;
-    private String missedAppointmentFee;
-    private String minimumHours;
 }

@@ -57,8 +57,8 @@ public class ContractService {
                 "serviços de tratamento odontológico (serviços de especialidade / endo / perio / orto / etc), " +
                 "obedecidos os termos e condições previstos neste instrumento.\n\n" +
                 "2° Cláusula – DO OBJETO\n" +
-                "O objeto CONTRATADO pelas partes está discriminado no Plano de Tratamento Odontológico n°______" +
-                " anexo e com valores de cada procedimento odontológicos, " +
+                "O objeto CONTRATADO pelas partes está discriminado no Plano de Tratamento Odontológico " +
+                "anexo e com valores de cada procedimento odontológicos, " +
                 "autorizando com a assinatura deste a execução do mesmo, em detrimento de outras opções " +
                 "de tratamento apresentadas. O CONTRATANTE foi devidamente esclarecido sobre riscos, " +
                 "vantagens, desvantagens e alternativas de tratamento optando de livre e espontânea " +
@@ -76,14 +76,6 @@ public class ContractService {
                 "5° Cláusula – MARCAÇÃO DE CONSULTAS\n" +
                 "O CONTRATADO atenderá o CONTRATANTE no consultório odontológico, mediante horário " +
                 "previamente agendado por telefone ou pessoalmente.\n\n" +
-                "6° Cláusula – ATRASOS, FALTAS E ABANDONO DE TRATAMENTO\n" +
-                "O CONTRATANTE está ciente de que o atraso máximo permitido é de 15 minutos a partir do " +
-                "qual perderá direito a consulta, sendo este ato considerado como falta. O CONTRATANTE está " +
-                "ciente de que faltas sem justificativas são de sua responsabilidade e autoriza a cobrança " +
-                "de R$ {{missedAppointmentFee}} por cada falta não comunicada com no mínimo {{minimumHours}} horas de antecedência já que o horário " +
-                "estará disponibilizado ao CONTRATANTE, e que o não comparecimento sistemático as " +
-                "consultas odontológicas sem justificativa ou não comparecimento sem justificativa por mais " +
-                "de 30(trinta) dias caracterizara o abandono de tratamento por parte do CONTRATANTE.\n\n" +
                 DENTIST_CITY + ", " + currentDate + ".\n\n\n";
         
         log.info("Contract generated successfully for patient: {}", patient.getName());
