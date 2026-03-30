@@ -2,6 +2,7 @@ package com.sboot.api.dental_clinic_api.controller;
 
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureDTO;
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureResponseDTO;
+import com.sboot.api.dental_clinic_api.dto.ProcedureDTO;
 import com.sboot.api.dental_clinic_api.service.PatientProcedureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -112,5 +113,14 @@ public class PatientProcedureController {
             @RequestParam String status) {
         PatientProcedureDTO updatedPatientProcedure = patientProcedureService.updateStatus(id, status);
         return ResponseEntity.ok(updatedPatientProcedure);
+    }
+
+    @GetMapping("/patient/{patientId}/procedures")
+    public ResponseEntity<Page<ProcedureDTO>> getProceduresByPatientId(
+            @PathVariable String patientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<ProcedureDTO> procedures = patientProcedureService.getProceduresByPatientId(patientId, page, size);
+        return ResponseEntity.ok(procedures);
     }
 }

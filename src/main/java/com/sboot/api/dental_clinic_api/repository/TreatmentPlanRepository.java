@@ -23,6 +23,8 @@ public interface TreatmentPlanRepository extends JpaRepository<TreatmentPlan, St
 
     List<TreatmentPlan> findByPatientId(String patientId);
 
+    Page<TreatmentPlan> findByPatientId(String patientId, Pageable pageable);
+
     @Query(value = "SELECT NEXTVAL('treatment_plans_code_seq')", nativeQuery = true)
     Long getNextSequenceValue();
 }

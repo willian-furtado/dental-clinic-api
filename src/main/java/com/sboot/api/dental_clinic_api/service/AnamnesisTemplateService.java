@@ -10,6 +10,7 @@ import com.sboot.api.dental_clinic_api.mapper.AnamnesisTemplateMapper;
 import com.sboot.api.dental_clinic_api.repository.AnamnesisTemplateRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,12 +21,15 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AnamnesisTemplateService {
     private final AnamnesisTemplateRepository templateRepository;
 
     private final AnamnesisTemplateMapper mapper;
 
     public List<AnamnesisTemplateDTO> getAllTemplates(String audience, String search) {
+        log.debug("Retrieving all templates with audience: {}, search: {}", audience, search);
+        
         List<AnamnesisTemplateDTO> templates = templateRepository.findAll().stream()
                 .map(template -> {
                     template.getQuestions().sort(Comparator.comparing(AnamnesisQuestion::getCreatedAt));
@@ -47,14 +51,18 @@ public class AnamnesisTemplateService {
                     .collect(Collectors.toList());
         }
 
+        log.debug("Found {} templates matching criteria", templates.size());
         return templates;
     }
 
     public Optional<AnamnesisTemplateDTO> getTemplateById(String id) {
+        log.debug("Retrieving template by ID: {}", id);
         return Optional.ofNullable(mapper.toDto(templateRepository.findByAnamneseId(id)));
     }
 
     public AnamnesisTemplateDTO createTemplate(AnamnesisTemplateDTO template) {
+        log.info("Creating new anamnesis template with name: {}", template.getName());
+        
         AnamnesisTemplate entity = mapper.toEntity(template);
         entity.setCreatedAt(LocalDateTime.now());
 
@@ -67,11 +75,16 @@ public class AnamnesisTemplateService {
                 }
             });
         }
-        return mapper.toDto(templateRepository.save(entity));
+        
+        AnamnesisTemplateDTO saved = mapper.toDto(templateRepository.save(entity));
+        log.info("Successfully created anamnesis template with ID: {}", saved.getId());
+        return saved;
     }
 
     @Transactional
     public Optional<AnamnesisTemplate> updateTemplate(String id, AnamnesisTemplateDTO updatedTemplateDTO) {
+        log.info("Updating anamnesis template with ID: {}", id);
+        
         return templateRepository.findById(id).map(template -> {
             template.setName(updatedTemplateDTO.getName());
             template.setDescription(updatedTemplateDTO.getDescription());
@@ -139,20 +152,28 @@ public class AnamnesisTemplateService {
                     }
                 }
             }
+            
+            log.info("Successfully updated anamnesis template with ID: {}", id);
             return templateRepository.save(template);
         });
     }
 
 
     public Optional<AnamnesisTemplate> toggleTemplateStatus(String id) {
+        log.info("Toggling status for anamnesis template with ID: {}", id);
+        
         return templateRepository.findById(id).map(template -> {
             template.setIsActive(!template.getIsActive());
             template.setUpdatedAt(LocalDateTime.now());
+            
+            log.info("Template status toggled to: {} for ID: {}", template.getIsActive(), id);
             return templateRepository.save(template);
         });
     }
 
     public void deleteTemplate(String id) {
+        log.info("Deleting anamnesis template with ID: {}", id);
         templateRepository.deleteById(id);
+        log.info("Successfully deleted anamnesis template with ID: {}", id);
     }
 }

@@ -6,6 +6,7 @@ import com.sboot.api.dental_clinic_api.dto.TreatmentPlanProcedureDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanTermsDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractDTO;
 import com.sboot.api.dental_clinic_api.dto.PaymentInstallmentDTO;
+import com.sboot.api.dental_clinic_api.dto.BudgetDTO;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlan;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlanProcedure;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlanTerms;
@@ -54,6 +55,15 @@ public abstract class TreatmentPlanMapper {
     @Mapping(target = "terms", ignore = true)
     @Mapping(target = "contract", ignore = true)
     public abstract TreatmentPlan toEntity(TreatmentPlanRequestDTO dto);
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "patientId", source = "patient.id")
+    @Mapping(target = "discount", expression = "java(treatmentPlan.getPaymentDiscountAmount() != null ? treatmentPlan.getPaymentDiscountAmount().doubleValue() : 0.0)")
+    @Mapping(target = "total", expression = "java(treatmentPlan.getFinalValue() != null ? treatmentPlan.getFinalValue().doubleValue() : 0.0)")
+    @Mapping(target = "status", expression = "java(treatmentPlan.getStatus() != null ? treatmentPlan.getStatus().name().toLowerCase() : null)")
+    @Mapping(target = "createdAt", expression = "java(treatmentPlan.getCreatedAt() != null ? treatmentPlan.getCreatedAt().toString() : null)")
+    @Mapping(target = "validUntil", expression = "java(treatmentPlan.getValidUntil() != null ? treatmentPlan.getValidUntil().toString() : null)")
+    public abstract BudgetDTO toBudgetDTO(TreatmentPlan treatmentPlan);
 
     protected List<TreatmentPlanProcedureDTO> mapProcedures(List<TreatmentPlanProcedure> procedures) {
         if (procedures == null) return null;
@@ -122,5 +132,19 @@ public abstract class TreatmentPlanMapper {
         dto.setPaidAt(installment.getPaidAt());
         dto.setCreatedAt(installment.getCreatedAt());
         return dto;
+    }
+
+    public List<BudgetDTO.BudgetProcedureDTO> mapBudgetProcedures(List<TreatmentPlanProcedure> procedures) {
+        if (procedures == null) return null;
+        return procedures.stream()
+                .map(proc -> BudgetDTO.BudgetProcedureDTO.builder()
+                        .toothNumber(proc.getToothNumber())
+                        .faces(proc.getFaces() != null && !proc.getFaces().isEmpty() ?
+                            Arrays.asList(proc.getFaces().split(",")) : null)
+                        .procedure(proc.getProcedureClinic() != null ? proc.getProcedureClinic().getName() : null)
+                        .value(proc.getValue() != null ? proc.getValue().doubleValue() : 0.0)
+                        .notes(proc.getNotes())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

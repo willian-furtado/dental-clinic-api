@@ -4,12 +4,14 @@ import com.sboot.api.dental_clinic_api.entity.Patient;
 import com.sboot.api.dental_clinic_api.entity.PatientAddress;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlan;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlanContract;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Component
+@Slf4j
 public class ContractContentGenerator {
 
     private static final String DENTIST_NAME = "Pâmila Maiane Furtado Silva";
@@ -19,6 +21,8 @@ public class ContractContentGenerator {
     private static final String DENTIST_CITY = "Divinópolis";
 
     public String generateContractContent(TreatmentPlan treatmentPlan, TreatmentPlanContract contract) {
+        log.info("Generating contract content for treatment plan ID: {}", treatmentPlan.getId());
+        
         Patient patient = treatmentPlan.getPatient();
         PatientAddress address = patient.getAddress();
 
@@ -33,6 +37,8 @@ public class ContractContentGenerator {
         String totalValueText = formatCurrency(totalValue);
 
         String paymentConditions = contract.getPaymentConditions() != null ? contract.getPaymentConditions() : "A Denifir";
+
+        log.debug("Contract generated for patient: {}, total value: {}", patientName, totalValueText);
 
         return "CONTRATO DE PRESTAÇÃO DE SERVIÇOS ODONTOLÓGICOS\n\n" +
                 "CONTRATANTE: " + patientName + ",\n" +

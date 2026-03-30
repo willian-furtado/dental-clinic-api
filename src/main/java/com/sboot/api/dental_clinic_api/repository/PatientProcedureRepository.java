@@ -54,4 +54,7 @@ public interface PatientProcedureRepository extends JpaRepository<PatientProcedu
     void deleteByTreatmentPlanIdAndProcedureClinicId(String treatmentPlanId, String procedureClinicId);
 
     void deleteByTreatmentPlanId(String treatmentPlanId);
+
+    @Query("SELECT pp FROM PatientProcedure pp WHERE pp.patient.id = :patientId")
+    Page<PatientProcedure> findByPatientId(@Param("patientId") String patientId, Pageable pageable);
 }

@@ -1,5 +1,6 @@
 package com.sboot.api.dental_clinic_api.controller;
 
+import com.sboot.api.dental_clinic_api.dto.BudgetDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractTermsDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
@@ -63,6 +64,15 @@ public class TreatmentPlanController {
             @PathVariable String id,
             @RequestBody TreatmentPlanContractTermsDTO request) {
         return ResponseEntity.ok(service.saveContractAndTerms(id, request.getTerms(), request.getContract()));
+    }
+
+    @GetMapping("/patient/{patientId}/budgets")
+    public ResponseEntity<Page<BudgetDTO>> getBudgetsByPatientId(
+            @PathVariable String patientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<BudgetDTO> budgets = service.getBudgetsByPatientId(patientId, page, size);
+        return ResponseEntity.ok(budgets);
     }
 
 }

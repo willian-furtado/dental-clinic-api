@@ -9,6 +9,7 @@ import com.sboot.api.dental_clinic_api.mapper.PaymentInstallmentMapper;
 import com.sboot.api.dental_clinic_api.repository.PaymentInstallmentRepository;
 import com.sboot.api.dental_clinic_api.repository.TreatmentPlanRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PaymentInstallmentService {
 
     private final PaymentInstallmentRepository paymentInstallmentRepository;
@@ -29,14 +31,20 @@ public class PaymentInstallmentService {
 
     @Transactional
     public List<PaymentInstallmentDTO> createInstallments(String treatmentPlanId, Integer installments, PaymentMethod paymentMethod) {
+        log.info("Creating installments for treatment plan ID: {}, installments: {}, payment method: {}", treatmentPlanId, installments, paymentMethod);
+        
         TreatmentPlan treatmentPlan = treatmentPlanRepository.findById(treatmentPlanId)
-                .orElseThrow(() -> new RuntimeException("Treatment plan not found"));
+                .orElseThrow(() -> {
+                    log.error("Treatment plan not found with ID: {}", treatmentPlanId);
+                    return new RuntimeException("Treatment plan not found");
+                });
 
         LocalDate currentDate = LocalDate.now();
         
         List<PaymentInstallment> installmentsList = paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId);
         
         if (!installmentsList.isEmpty()) {
+            log.debug("Deleting {} existing installments for treatment plan ID: {}", installmentsList.size(), treatmentPlanId);
             paymentInstallmentRepository.deleteAll(installmentsList);
         }
 
@@ -51,6 +59,7 @@ public class PaymentInstallmentService {
                 .build();
         
         paymentInstallmentRepository.save(installment);
+        log.info("Successfully created installment for treatment plan ID: {}", treatmentPlanId);
 
         return paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
                 .stream()
@@ -60,13 +69,19 @@ public class PaymentInstallmentService {
 
     @Transactional
     public List<PaymentInstallmentDTO> updateInstallments(String treatmentPlanId, Integer installments, PaymentMethod paymentMethod) {
+        log.info("Updating installments for treatment plan ID: {}, installments: {}, payment method: {}", treatmentPlanId, installments, paymentMethod);
+        
         TreatmentPlan treatmentPlan = treatmentPlanRepository.findById(treatmentPlanId)
-                .orElseThrow(() -> new RuntimeException("Treatment plan not found"));
+                .orElseThrow(() -> {
+                    log.error("Treatment plan not found with ID: {}", treatmentPlanId);
+                    return new RuntimeException("Treatment plan not found");
+                });
 
         LocalDate currentDate = LocalDate.now();
         
         List<PaymentInstallment> existingInstallments = paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId);
         if (!existingInstallments.isEmpty()) {
+            log.debug("Deleting {} existing installments for treatment plan ID: {}", existingInstallments.size(), treatmentPlanId);
             paymentInstallmentRepository.deleteAll(existingInstallments);
         }
 
@@ -82,6 +97,7 @@ public class PaymentInstallmentService {
                 .build();
         
         paymentInstallmentRepository.save(installment);
+        log.info("Successfully updated installment for treatment plan ID: {}", treatmentPlanId);
 
         return paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
                 .stream()
@@ -90,39 +106,55 @@ public class PaymentInstallmentService {
     }
 
     public List<PaymentInstallmentDTO> getInstallmentsByTreatmentPlan(String treatmentPlanId) {
-        return paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
+        log.debug("Retrieving installments for treatment plan ID: {}", treatmentPlanId);
+        List<PaymentInstallmentDTO> result = paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
                 .stream()
                 .map(paymentInstallmentMapper::toDTO)
                 .collect(Collectors.toList());
+        log.debug("Found {} installments for treatment plan ID: {}", result.size(), treatmentPlanId);
+        return result;
     }
 
     @Transactional
     public PaymentInstallmentDTO updateInstallmentStatus(String installmentId, PaymentStatus status) {
+        log.info("Updating status for installment ID: {} to status: {}", installmentId, status);
+        
         PaymentInstallment installment = paymentInstallmentRepository.findById(installmentId)
-                .orElseThrow(() -> new RuntimeException("Installment not found"));
+                .orElseThrow(() -> {
+                    log.error("Installment not found with ID: {}", installmentId);
+                    return new RuntimeException("Installment not found");
+                });
 
         installment.setStatus(status);
         if (status == PaymentStatus.paid) {
             installment.setPaidAt(LocalDateTime.now());
+            log.debug("Setting paidAt timestamp for installment ID: {}", installmentId);
         } else {
             installment.setPaidAt(null);
         }
 
         PaymentInstallment updatedInstallment = paymentInstallmentRepository.save(installment);
+        log.info("Successfully updated status for installment ID: {} to status: {}", installmentId, status);
         return paymentInstallmentMapper.toDTO(updatedInstallment);
     }
 
     public List<PaymentInstallmentDTO> getOverdueInstallments() {
-        return paymentInstallmentRepository.findOverdueInstallments(LocalDate.now())
+        log.debug("Retrieving overdue installments");
+        List<PaymentInstallmentDTO> result = paymentInstallmentRepository.findOverdueInstallments(LocalDate.now())
                 .stream()
                 .map(paymentInstallmentMapper::toDTO)
                 .collect(Collectors.toList());
+        log.debug("Found {} overdue installments", result.size());
+        return result;
     }
 
     public List<PaymentInstallmentDTO> getDueInstallments() {
-        return paymentInstallmentRepository.findDueInstallments(LocalDate.now())
+        log.debug("Retrieving due installments");
+        List<PaymentInstallmentDTO> result = paymentInstallmentRepository.findDueInstallments(LocalDate.now())
                 .stream()
                 .map(paymentInstallmentMapper::toDTO)
                 .collect(Collectors.toList());
+        log.debug("Found {} due installments", result.size());
+        return result;
     }
 }

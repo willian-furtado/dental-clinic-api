@@ -1,5 +1,6 @@
 package com.sboot.api.dental_clinic_api.service;
 
+import com.sboot.api.dental_clinic_api.dto.BudgetDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanRequestDTO;
 import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
@@ -13,6 +14,7 @@ import com.sboot.api.dental_clinic_api.mapper.TreatmentPlanProcedureMapper;
 import com.sboot.api.dental_clinic_api.mapper.TreatmentPlanTermsMapper;
 import com.sboot.api.dental_clinic_api.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TreatmentPlanService {
 
     public static final String AUTOMATICO = "Automático";
@@ -43,24 +46,45 @@ public class TreatmentPlanService {
     private final ContractContentGenerator contractContentGenerator;
 
     public Page<TreatmentPlanResponseDTO> findPageAll(int page, int size, String search) {
+        log.debug("Retrieving treatment plans with pagination: page={}, size={}, search={}", page, size, search);
         Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
         Page<TreatmentPlan> result = repository.findAllByFilters(search, pageable);
+        log.debug("Found {} treatment plans", result.getTotalElements());
         return result.map(mapper::toResponseDTO);
     }
 
     public TreatmentPlanResponseDTO findById(String id) {
+        log.debug("Retrieving treatment plan by ID: {}", id);
         TreatmentPlan treatmentPlan = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + id));
+                .orElseThrow(() -> {
+                    log.error("TreatmentPlan not found with ID: {}", id);
+                    return new RuntimeException("TreatmentPlan not found with id: " + id);
+                });
         return mapper.toResponseDTO(treatmentPlan);
     }
 
     public List<TreatmentPlanResponseDTO> findByPatientId(String patientId) {
+        log.debug("Retrieving treatment plans for patient ID: {}", patientId);
         List<TreatmentPlan> result = repository.findByPatientId(patientId);
+        log.debug("Found {} treatment plans for patient ID: {}", result.size(), patientId);
         return result.stream().map(mapper::toResponseDTO).collect(Collectors.toList());
+    }
+
+    public Page<BudgetDTO> getBudgetsByPatientId(String patientId, int page, int size) {
+        log.debug("Retrieving budgets for patient ID: {} with pagination: page={}, size={}", patientId, page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.Direction.DESC, "createdAt");
+        Page<TreatmentPlan> treatmentPlans = repository.findByPatientId(patientId, pageable);
+        log.debug("Found {} budgets for patient ID: {}", treatmentPlans.getTotalElements(), patientId);
+        return treatmentPlans.map(tp -> {
+            BudgetDTO budget = mapper.toBudgetDTO(tp);
+            budget.setProcedures(mapper.mapBudgetProcedures(tp.getProcedures()));
+            return budget;
+        });
     }
 
     @Transactional
     public TreatmentPlanResponseDTO create(TreatmentPlanRequestDTO request) {
+        log.info("Creating new treatment plan for patient ID: {}", request.getPatientId());
         TreatmentPlan entity = mapper.toEntity(request);
 
         Long nextCode = repository.getNextSequenceValue();
@@ -84,13 +108,18 @@ public class TreatmentPlanService {
         entity.setValidUntil(LocalDate.now().plusMonths(3));
 
         TreatmentPlan saved = repository.save(entity);
+        log.info("Successfully created treatment plan with ID: {}", saved.getId());
         return mapper.toResponseDTO(saved);
     }
 
     @Transactional
     public TreatmentPlanResponseDTO update(String id, TreatmentPlanRequestDTO request) {
+        log.info("Updating treatment plan with ID: {}", id);
         TreatmentPlan existing = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + id));
+                .orElseThrow(() -> {
+                    log.error("TreatmentPlan not found with ID: {}", id);
+                    return new RuntimeException("TreatmentPlan not found with id: " + id);
+                });
 
         if (existing.getPatient() == null) {
             Patient patient = new Patient();
@@ -133,11 +162,13 @@ public class TreatmentPlanService {
             updatePatientProceduresFromTreatmentPlan(saved);
         }
 
+        log.info("Successfully updated treatment plan with ID: {}", id);
         return mapper.toResponseDTO(saved);
     }
 
     @Transactional
     private void updatePatientProceduresFromTreatmentPlan(TreatmentPlan treatmentPlan) {
+        log.debug("Updating patient procedures from treatment plan ID: {}", treatmentPlan.getId());
         patientProcedureRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
 
         BigDecimal totalDiscount = treatmentPlan.getPaymentDiscountAmount() != null ? treatmentPlan.getPaymentDiscountAmount() : BigDecimal.ZERO;
@@ -197,13 +228,18 @@ public class TreatmentPlanService {
             for (PatientProcedure patientProcedure : patientProcedures) {
                 patientProcedureRepository.save(patientProcedure);
             }
+            log.debug("Created {} patient procedures from treatment plan ID: {}", patientProcedures.size(), treatmentPlan.getId());
         }
     }
 
     @Transactional
     public void delete(String id) {
+        log.info("Deleting treatment plan with ID: {}", id);
         TreatmentPlan treatmentPlan = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + id));
+                .orElseThrow(() -> {
+                    log.error("TreatmentPlan not found with ID: {}", id);
+                    return new RuntimeException("TreatmentPlan not found with id: " + id);
+                });
 
         if (treatmentPlan.getProcedures() != null) {
             for (TreatmentPlanProcedure procedure : treatmentPlan.getProcedures()) {
@@ -212,12 +248,17 @@ public class TreatmentPlanService {
         }
 
         repository.deleteById(id);
+        log.info("Successfully deleted treatment plan with ID: {}", id);
     }
 
     @Transactional
     public TreatmentPlanResponseDTO updateStatus(String id, TreatmentPlanStatus status) {
+        log.info("Updating status for treatment plan ID: {} to status: {}", id, status);
         TreatmentPlan treatmentPlan = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + id));
+                .orElseThrow(() -> {
+                    log.error("TreatmentPlan not found with ID: {}", id);
+                    return new RuntimeException("TreatmentPlan not found with id: " + id);
+                });
 
         treatmentPlan.setStatus(status);
         TreatmentPlan saved = repository.save(treatmentPlan);
@@ -226,13 +267,18 @@ public class TreatmentPlanService {
             updatePatientProceduresFromTreatmentPlan(saved);
         }
 
+        log.info("Successfully updated status for treatment plan ID: {} to status: {}", id, status);
         return mapper.toResponseDTO(saved);
     }
 
     @Transactional
     public TreatmentPlanResponseDTO saveContractAndTerms(String treatmentPlanId, TreatmentPlanTermsDTO termsDTO, TreatmentPlanContractDTO contractDTO) {
+        log.info("Saving contract and terms for treatment plan ID: {}", treatmentPlanId);
         TreatmentPlan treatmentPlan = repository.findById(treatmentPlanId)
-                .orElseThrow(() -> new RuntimeException("TreatmentPlan not found with id: " + treatmentPlanId));
+                .orElseThrow(() -> {
+                    log.error("TreatmentPlan not found with ID: {}", treatmentPlanId);
+                    return new RuntimeException("TreatmentPlan not found with id: " + treatmentPlanId);
+                });
 
         termsRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
         contractRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
@@ -267,6 +313,7 @@ public class TreatmentPlanService {
         }
 
         TreatmentPlan saved = repository.save(treatmentPlan);
+        log.info("Successfully saved contract and terms for treatment plan ID: {}", treatmentPlanId);
         return mapper.toResponseDTO(saved);
     }
 }

@@ -2,6 +2,7 @@ package com.sboot.api.dental_clinic_api.mapper;
 
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureDTO;
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureResponseDTO;
+import com.sboot.api.dental_clinic_api.dto.ProcedureDTO;
 import com.sboot.api.dental_clinic_api.entity.PatientProcedure;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -32,4 +33,17 @@ public interface PatientProcedureMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     PatientProcedure toEntity(PatientProcedureDTO dto);
+
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "patientId", source = "patient.id")
+    @Mapping(target = "procedureType", source = "procedureClinic.name")
+    @Mapping(target = "description", source = "procedureClinic.description")
+    @Mapping(target = "date", expression = "java(patientProcedure.getScheduledDate() != null ? patientProcedure.getScheduledDate().toString() : null)")
+    @Mapping(target = "dentist", constant = "Dra. Pâmila Furtado")
+    @Mapping(target = "status", expression = "java(patientProcedure.getStatus() != null ? patientProcedure.getStatus().name().toLowerCase() : null)")
+    @Mapping(target = "cost", expression = "java(patientProcedure.getValue() != null ? patientProcedure.getValue().doubleValue() : null)")
+    @Mapping(target = "notes", source = "notes")
+    @Mapping(target = "toothNumber", source = "toothNumber")
+    @Mapping(target = "faces", expression = "java(patientProcedure.getFaces() != null && !patientProcedure.getFaces().isEmpty() ? java.util.Arrays.asList(patientProcedure.getFaces().split(\",\")) : null)")
+    ProcedureDTO toProcedureDTO(PatientProcedure patientProcedure);
 }

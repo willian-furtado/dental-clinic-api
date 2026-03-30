@@ -105,7 +105,7 @@ public class PatientService {
             log.debug("Retrieving all patients with pagination: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
             Page<PatientDTO> result = patientRepository.findAll(pageable)
                     .map(patientMapper::toDto);
-            log.debug("Retrieved {} patients", result.getTotalElements());
+            log.info("Retrieved {} patients", result.getTotalElements());
             return result;
         } else {
             log.debug("Searching patients by name or CPF: '{}' with pagination: page={}, size={}", search.trim(), pageable.getPageNumber(), pageable.getPageSize());
