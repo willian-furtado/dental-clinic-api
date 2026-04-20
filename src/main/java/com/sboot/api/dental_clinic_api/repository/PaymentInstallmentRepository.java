@@ -12,11 +12,11 @@ import java.util.List;
 @Repository
 public interface PaymentInstallmentRepository extends JpaRepository<PaymentInstallment, String> {
 
-    List<PaymentInstallment> findByTreatmentPlanId(String treatmentPlanId);
+    List<PaymentInstallment> findByPatientProcedureId(String patientProcedureId);
 
-    @Query("SELECT pi FROM PaymentInstallment pi WHERE pi.treatmentPlan.id = :treatmentPlanId AND pi.status = 'OVERDUE' AND pi.dueDate < :currentDate")
-    List<PaymentInstallment> findOverdueInstallmentsByTreatmentPlanId(
-            @Param("treatmentPlanId") String treatmentPlanId,
+    @Query("SELECT pi FROM PaymentInstallment pi WHERE pi.patientProcedure.id = :patientProcedureId AND pi.status = 'OVERDUE' AND pi.dueDate < :currentDate")
+    List<PaymentInstallment> findOverdueInstallmentsByPatientProcedureId(
+            @Param("patientProcedureId") String patientProcedureId,
             @Param("currentDate") LocalDate currentDate
     );
 

@@ -13,6 +13,7 @@ import java.util.List;
 @Builder
 public class BudgetDTO {
     private String id;
+    private Long code;
     private String patientId;
     private List<BudgetProcedureDTO> procedures;
     private Double discount;

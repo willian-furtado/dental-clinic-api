@@ -39,6 +39,7 @@ public class TreatmentPlanService {
     private final TreatmentPlanTermsRepository termsRepository;
     private final TreatmentPlanContractRepository contractRepository;
     private final PatientProcedureRepository patientProcedureRepository;
+    private final FinancialTransactionRepository financialTransactionRepository;
     private final TreatmentPlanMapper mapper;
     private final TreatmentPlanProcedureMapper procedureMapper;
     private final TreatmentPlanTermsMapper termsMapper;
@@ -169,8 +170,31 @@ public class TreatmentPlanService {
     @Transactional
     private void updatePatientProceduresFromTreatmentPlan(TreatmentPlan treatmentPlan) {
         log.debug("Updating patient procedures from treatment plan ID: {}", treatmentPlan.getId());
-        patientProcedureRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
+        
+        deleteExistingPatientProcedures(treatmentPlan);
+        
+        BigDecimal discountRatio = calculateDiscountRatio(treatmentPlan);
+        
+        List<PatientProcedure> patientProcedures = createPatientProcedures(treatmentPlan, discountRatio);
+        
+        adjustProcedureValuesIfNeeded(patientProcedures, treatmentPlan);
+        
+        savePatientProcedures(patientProcedures, treatmentPlan.getId());
+    }
 
+    private void deleteExistingPatientProcedures(TreatmentPlan treatmentPlan) {
+        log.debug("Deleting existing patient procedures for treatment plan ID: {}", treatmentPlan.getId());
+        
+        List<PatientProcedure> existingProcedures = patientProcedureRepository.findByTreatmentPlanId(treatmentPlan.getId());
+        
+        for (PatientProcedure procedure : existingProcedures) {
+            financialTransactionRepository.deleteByPatientProcedureId(procedure.getId());
+        }
+        
+        patientProcedureRepository.deleteByTreatmentPlanId(treatmentPlan.getId());
+    }
+
+    private BigDecimal calculateDiscountRatio(TreatmentPlan treatmentPlan) {
         BigDecimal totalDiscount = treatmentPlan.getPaymentDiscountAmount() != null ? treatmentPlan.getPaymentDiscountAmount() : BigDecimal.ZERO;
         BigDecimal totalValue = treatmentPlan.getSubtotal() != null ? treatmentPlan.getSubtotal() : BigDecimal.ZERO;
         String discountType = String.valueOf(treatmentPlan.getPaymentDiscountType());
@@ -188,48 +212,66 @@ public class TreatmentPlanService {
                 discountRatio = treatmentPlan.getFinalValue().divide(totalValue, 10, java.math.RoundingMode.HALF_UP);
             }
         }
+        
+        return discountRatio;
+    }
 
-        BigDecimal totalDiscountedValue = BigDecimal.ZERO;
+    private List<PatientProcedure> createPatientProcedures(TreatmentPlan treatmentPlan, BigDecimal discountRatio) {
         List<PatientProcedure> patientProcedures = new java.util.ArrayList<>();
 
         for (TreatmentPlanProcedure procedure : treatmentPlan.getProcedures()) {
-            PatientProcedure patientProcedure = new PatientProcedure();
-            patientProcedure.setPatient(treatmentPlan.getPatient());
-            patientProcedure.setTreatmentPlan(treatmentPlan);
-            patientProcedure.setProcedureClinic(procedure.getProcedureClinic());
-            patientProcedure.setToothNumber(procedure.getToothNumber());
-            patientProcedure.setFaces(procedure.getFaces());
-
-            BigDecimal procedureValue = procedure.getValue() != null ? procedure.getValue() : BigDecimal.ZERO;
-
-            BigDecimal finalProcedureValue = procedureValue.multiply(discountRatio).setScale(2, java.math.RoundingMode.HALF_UP);
-
-            patientProcedure.setValue(finalProcedureValue);
-            patientProcedure.setStatus(PatientProcedureStatus.planned);
-            patientProcedure.setScheduledDate(null);
-            patientProcedure.setNotes(procedure.getNotes());
-            patientProcedure.setOrigin(AUTOMATICO);
-            patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
-
+            PatientProcedure patientProcedure = mapToPatientProcedure(procedure, treatmentPlan, discountRatio);
             patientProcedures.add(patientProcedure);
-            totalDiscountedValue = totalDiscountedValue.add(finalProcedureValue);
+        }
+        
+        return patientProcedures;
+    }
+
+    private PatientProcedure mapToPatientProcedure(TreatmentPlanProcedure procedure, TreatmentPlan treatmentPlan, BigDecimal discountRatio) {
+        PatientProcedure patientProcedure = new PatientProcedure();
+        patientProcedure.setPatient(treatmentPlan.getPatient());
+        patientProcedure.setTreatmentPlan(treatmentPlan);
+        patientProcedure.setProcedureClinic(procedure.getProcedureClinic());
+        patientProcedure.setToothNumber(procedure.getToothNumber());
+        patientProcedure.setFaces(procedure.getFaces());
+
+        BigDecimal procedureValue = procedure.getValue() != null ? procedure.getValue() : BigDecimal.ZERO;
+        BigDecimal finalProcedureValue = procedureValue.multiply(discountRatio).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        patientProcedure.setValue(finalProcedureValue);
+        patientProcedure.setStatus(PatientProcedureStatus.planned);
+        patientProcedure.setScheduledDate(null);
+        patientProcedure.setNotes(procedure.getNotes());
+        patientProcedure.setOrigin(AUTOMATICO);
+        patientProcedure.setCreatedAt(java.time.LocalDateTime.now());
+        
+        return patientProcedure;
+    }
+
+    private void adjustProcedureValuesIfNeeded(List<PatientProcedure> patientProcedures, TreatmentPlan treatmentPlan) {
+        if (patientProcedures.isEmpty()) {
+            return;
         }
 
-        if (!patientProcedures.isEmpty()) {
-            BigDecimal targetTotal = treatmentPlan.getFinalValue() != null ? treatmentPlan.getFinalValue() : BigDecimal.ZERO;
-            BigDecimal difference = targetTotal.subtract(totalDiscountedValue);
+        BigDecimal totalDiscountedValue = patientProcedures.stream()
+                .map(PatientProcedure::getValue)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-            if (difference.abs().compareTo(new BigDecimal("0.01")) > 0) {
-                PatientProcedure lastProcedure = patientProcedures.get(patientProcedures.size() - 1);
-                BigDecimal adjustedValue = lastProcedure.getValue().add(difference);
-                lastProcedure.setValue(adjustedValue.setScale(2, java.math.RoundingMode.HALF_UP));
-            }
+        BigDecimal targetTotal = treatmentPlan.getFinalValue() != null ? treatmentPlan.getFinalValue() : BigDecimal.ZERO;
+        BigDecimal difference = targetTotal.subtract(totalDiscountedValue);
 
-            for (PatientProcedure patientProcedure : patientProcedures) {
-                patientProcedureRepository.save(patientProcedure);
-            }
-            log.debug("Created {} patient procedures from treatment plan ID: {}", patientProcedures.size(), treatmentPlan.getId());
+        if (difference.abs().compareTo(new BigDecimal("0.01")) > 0) {
+            PatientProcedure lastProcedure = patientProcedures.get(patientProcedures.size() - 1);
+            BigDecimal adjustedValue = lastProcedure.getValue().add(difference);
+            lastProcedure.setValue(adjustedValue.setScale(2, java.math.RoundingMode.HALF_UP));
         }
+    }
+
+    private void savePatientProcedures(List<PatientProcedure> patientProcedures, String treatmentPlanId) {
+        for (PatientProcedure patientProcedure : patientProcedures) {
+            patientProcedureRepository.save(patientProcedure);
+        }
+        log.debug("Created {} patient procedures from treatment plan ID: {}", patientProcedures.size(), treatmentPlanId);
     }
 
     @Transactional

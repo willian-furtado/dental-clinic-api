@@ -14,6 +14,7 @@ public interface AnamnesisResponseMapper {
     AnamnesisResponse toEntity(AnamnesisResponseDTO dto);
 
     @Mapping(target = "questionId", source = "question.id")
+    @Mapping(target = "questionType", source = "question.type")
     @Mapping(target = "selectedOptionId", source = "selectedOption.id")
     AnamnesisResponseDTO toDto(AnamnesisResponse entity);
 }

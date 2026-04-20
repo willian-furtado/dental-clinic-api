@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -17,39 +18,38 @@ public class PaymentInstallmentController {
     @Autowired
     private PaymentInstallmentService paymentInstallmentService;
 
-    @GetMapping("/treatment-plan/{treatmentPlanId}")
-    public ResponseEntity<List<PaymentInstallmentDTO>> getInstallmentsByTreatmentPlan(
-            @PathVariable String treatmentPlanId) {
-        List<PaymentInstallmentDTO> installments = paymentInstallmentService.getInstallmentsByTreatmentPlan(treatmentPlanId);
+    @GetMapping("/patient-procedure/{patientProcedureId}")
+    public ResponseEntity<List<PaymentInstallmentDTO>> getInstallmentsByPatientProcedure(
+            @PathVariable String patientProcedureId) {
+        List<PaymentInstallmentDTO> installments = paymentInstallmentService.getInstallmentsByPatientProcedure(patientProcedureId);
         return ResponseEntity.ok(installments);
     }
 
-    @GetMapping("/by-treatment-plan/{treatmentPlanId}")
-    public ResponseEntity<List<PaymentInstallmentDTO>> getInstallmentsByTreatmentPlanId(
-            @PathVariable String treatmentPlanId) {
-        List<PaymentInstallmentDTO> installments = paymentInstallmentService.getInstallmentsByTreatmentPlan(treatmentPlanId);
+    @GetMapping("/by-patient-procedure/{patientProcedureId}")
+    public ResponseEntity<List<PaymentInstallmentDTO>> getInstallmentsByPatientProcedureId(
+            @PathVariable String patientProcedureId) {
+        List<PaymentInstallmentDTO> installments = paymentInstallmentService.getInstallmentsByPatientProcedure(patientProcedureId);
         return ResponseEntity.ok(installments);
     }
 
-    @PostMapping("/create/{treatmentPlanId}")
-    public ResponseEntity<List<PaymentInstallmentDTO>> createInstallments(
-            @PathVariable String treatmentPlanId,
+    @PostMapping("/create/{patientProcedureId}")
+    public void createInstallments(
+            @PathVariable String patientProcedureId,
             @RequestParam Integer installments,
             @RequestParam String paymentMethod) {
         
         PaymentMethod method = PaymentMethod.valueOf(paymentMethod);
-        List<PaymentInstallmentDTO> createdInstallments = paymentInstallmentService.createInstallments(treatmentPlanId, installments, method);
-        return ResponseEntity.ok(createdInstallments);
+        paymentInstallmentService.createInstallments(patientProcedureId, installments, method);
     }
 
-    @PutMapping("/treatment-plan/{treatmentPlanId}/update")
+    @PutMapping("/patient-procedure/{patientProcedureId}/update")
     public ResponseEntity<List<PaymentInstallmentDTO>> updateInstallments(
-            @PathVariable String treatmentPlanId,
+            @PathVariable String patientProcedureId,
             @RequestParam Integer installments,
             @RequestParam String paymentMethod) {
         
         PaymentMethod method = PaymentMethod.valueOf(paymentMethod);
-        List<PaymentInstallmentDTO> updatedInstallments = paymentInstallmentService.updateInstallments(treatmentPlanId, installments, method);
+        List<PaymentInstallmentDTO> updatedInstallments = paymentInstallmentService.updateInstallments(patientProcedureId, installments, method);
         return ResponseEntity.ok(updatedInstallments);
     }
 

@@ -45,7 +45,6 @@ public abstract class TreatmentPlanMapper {
         dto.setProcedures(mapProcedures(entity.getProcedures()));
         dto.setTerms(mapTerms(entity.getTerms(), entity.getContract()));
         dto.setContract(mapContract(entity.getContract()));
-        dto.setPaymentInstallments(mapPaymentInstallments(entity.getPaymentInstallments()));
 
         return dto;
     }
@@ -58,6 +57,7 @@ public abstract class TreatmentPlanMapper {
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "patientId", source = "patient.id")
+    @Mapping(target = "code", source = "code")
     @Mapping(target = "discount", expression = "java(treatmentPlan.getPaymentDiscountAmount() != null ? treatmentPlan.getPaymentDiscountAmount().doubleValue() : 0.0)")
     @Mapping(target = "total", expression = "java(treatmentPlan.getFinalValue() != null ? treatmentPlan.getFinalValue().doubleValue() : 0.0)")
     @Mapping(target = "status", expression = "java(treatmentPlan.getStatus() != null ? treatmentPlan.getStatus().name().toLowerCase() : null)")
@@ -109,28 +109,6 @@ public abstract class TreatmentPlanMapper {
         dto.setContractorSignatureImage(contract.getContractorSignatureImage());
         dto.setSignatureImage(contract.getSignatureImage());
         dto.setPaymentConditions(contract.getPaymentConditions());
-        return dto;
-    }
-
-    protected List<PaymentInstallmentDTO> mapPaymentInstallments(List<PaymentInstallment> installments) {
-        if (installments == null) return null;
-        return installments.stream()
-                .map(this::mapPaymentInstallment)
-                .collect(Collectors.toList());
-    }
-
-    protected PaymentInstallmentDTO mapPaymentInstallment(PaymentInstallment installment) {
-        if (installment == null) return null;
-        PaymentInstallmentDTO dto = new PaymentInstallmentDTO();
-        dto.setId(installment.getId());
-        dto.setTreatmentPlanId(installment.getTreatmentPlan() != null ? installment.getTreatmentPlan().getId() : null);
-        dto.setDueDate(installment.getDueDate());
-        dto.setAmount(installment.getAmount());
-        dto.setPaymentMethod(installment.getPaymentMethod());
-        dto.setInstallmentNumber(installment.getInstallmentNumber());
-        dto.setStatus(installment.getStatus());
-        dto.setPaidAt(installment.getPaidAt());
-        dto.setCreatedAt(installment.getCreatedAt());
         return dto;
     }
 

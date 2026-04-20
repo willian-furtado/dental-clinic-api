@@ -267,4 +267,19 @@ public class PatientProcedureService {
         log.debug("Found {} procedures for patient ID: {}", patientProcedures.getTotalElements(), patientId);
         return patientProcedures.map(patientProcedureMapper::toProcedureDTO);
     }
+
+    public PatientProcedureDTO updateAnnotation(String id, String notes) {
+        log.info("Updating annotation for patient procedure ID: {}", id);
+        PatientProcedure patientProcedure = patientProcedureRepository.findById(id)
+                .orElseThrow(() -> {
+                    log.error("PatientProcedure not found with ID: {}", id);
+                    return new RuntimeException("PatientProcedure not found with id: " + id);
+                });
+
+        patientProcedure.setNotes(notes);
+        PatientProcedure updatedPatientProcedure = patientProcedureRepository.save(patientProcedure);
+        
+        log.info("Successfully updated annotation for patient procedure ID: {}", id);
+        return patientProcedureMapper.toDTO(updatedPatientProcedure);
+    }
 }

@@ -1,11 +1,17 @@
 package com.sboot.api.dental_clinic_api.service;
 
 import com.sboot.api.dental_clinic_api.dto.PaymentInstallmentDTO;
+import com.sboot.api.dental_clinic_api.entity.FinancialTransaction;
+import com.sboot.api.dental_clinic_api.entity.PatientProcedure;
 import com.sboot.api.dental_clinic_api.entity.PaymentInstallment;
 import com.sboot.api.dental_clinic_api.entity.TreatmentPlan;
+import com.sboot.api.dental_clinic_api.enums.IncomeSource;
 import com.sboot.api.dental_clinic_api.enums.PaymentMethod;
 import com.sboot.api.dental_clinic_api.enums.PaymentStatus;
+import com.sboot.api.dental_clinic_api.enums.TransactionType;
 import com.sboot.api.dental_clinic_api.mapper.PaymentInstallmentMapper;
+import com.sboot.api.dental_clinic_api.repository.FinancialTransactionRepository;
+import com.sboot.api.dental_clinic_api.repository.PatientProcedureRepository;
 import com.sboot.api.dental_clinic_api.repository.PaymentInstallmentRepository;
 import com.sboot.api.dental_clinic_api.repository.TreatmentPlanRepository;
 import lombok.RequiredArgsConstructor;
@@ -27,31 +33,35 @@ public class PaymentInstallmentService {
 
     private final TreatmentPlanRepository treatmentPlanRepository;
 
+    private final PatientProcedureRepository patientProcedureRepository;
+
+    private final FinancialTransactionRepository financialTransactionRepository;
+
     private final PaymentInstallmentMapper paymentInstallmentMapper;
 
     @Transactional
-    public List<PaymentInstallmentDTO> createInstallments(String treatmentPlanId, Integer installments, PaymentMethod paymentMethod) {
-        log.info("Creating installments for treatment plan ID: {}, installments: {}, payment method: {}", treatmentPlanId, installments, paymentMethod);
+    public void createInstallments(String patientProcedureId, Integer installments, PaymentMethod paymentMethod) {
+        log.info("Creating installments for patient procedure ID: {}, installments: {}, payment method: {}", patientProcedureId, installments, paymentMethod);
         
-        TreatmentPlan treatmentPlan = treatmentPlanRepository.findById(treatmentPlanId)
+        PatientProcedure patientProcedure = patientProcedureRepository.findById(patientProcedureId)
                 .orElseThrow(() -> {
-                    log.error("Treatment plan not found with ID: {}", treatmentPlanId);
-                    return new RuntimeException("Treatment plan not found");
+                    log.error("Patient procedure not found with ID: {}", patientProcedureId);
+                    return new RuntimeException("Patient procedure not found");
                 });
 
-        LocalDate currentDate = LocalDate.now();
-        
-        List<PaymentInstallment> installmentsList = paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId);
+        List<PaymentInstallment> installmentsList = paymentInstallmentRepository.findByPatientProcedureId(patientProcedureId);
         
         if (!installmentsList.isEmpty()) {
-            log.debug("Deleting {} existing installments for treatment plan ID: {}", installmentsList.size(), treatmentPlanId);
+            log.debug("Deleting {} existing installments for patient procedure ID: {}", installmentsList.size(), patientProcedureId);
             paymentInstallmentRepository.deleteAll(installmentsList);
         }
 
+        LocalDate currentDate = LocalDate.now();
+        
         PaymentInstallment installment = PaymentInstallment.builder()
-                .treatmentPlan(treatmentPlan)
+                .patientProcedure(patientProcedure)
                 .dueDate(currentDate)
-                .amount(treatmentPlan.getFinalValue())
+                .amount(patientProcedure.getValue())
                 .paymentMethod(paymentMethod)
                 .installmentNumber(installments)
                 .status(PaymentStatus.pending)
@@ -59,37 +69,55 @@ public class PaymentInstallmentService {
                 .build();
         
         paymentInstallmentRepository.save(installment);
-        log.info("Successfully created installment for treatment plan ID: {}", treatmentPlanId);
+        
+        createFinancialTransactionFromPatientProcedure(patientProcedure, paymentMethod);
+        
+        log.info("Successfully created installment for patient procedure ID: {}", patientProcedureId);
+    }
 
-        return paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
-                .stream()
-                .map(paymentInstallmentMapper::toDTO)
-                .collect(Collectors.toList());
+    private void createFinancialTransactionFromPatientProcedure(PatientProcedure patientProcedure, PaymentMethod paymentMethod) {
+        log.debug("Creating financial transaction for patient procedure ID: {}", patientProcedure.getId());
+        
+        FinancialTransaction transaction = FinancialTransaction.builder()
+                .type(TransactionType.INCOME)
+                .description(patientProcedure.getProcedureClinic() != null ? patientProcedure.getProcedureClinic().getName() : "N/A")
+                .amount(patientProcedure.getValue())
+                .date(LocalDate.now())
+                .paymentMethod(paymentMethod)
+                .createdAt(LocalDateTime.now())
+                .source(patientProcedure.getOrigin().equals("Manual") ? IncomeSource.appointment : IncomeSource.procedure)
+                .patientProcedure(patientProcedure)
+                .patient(patientProcedure.getPatient())
+                .status(PaymentStatus.paid)
+                .build();
+        
+        financialTransactionRepository.save(transaction);
+        log.debug("Successfully created financial transaction for patient procedure ID: {}", patientProcedure.getId());
     }
 
     @Transactional
-    public List<PaymentInstallmentDTO> updateInstallments(String treatmentPlanId, Integer installments, PaymentMethod paymentMethod) {
-        log.info("Updating installments for treatment plan ID: {}, installments: {}, payment method: {}", treatmentPlanId, installments, paymentMethod);
+    public List<PaymentInstallmentDTO> updateInstallments(String patientProcedureId, Integer installments, PaymentMethod paymentMethod) {
+        log.info("Updating installments for patient procedure ID: {}, installments: {}, payment method: {}", patientProcedureId, installments, paymentMethod);
         
-        TreatmentPlan treatmentPlan = treatmentPlanRepository.findById(treatmentPlanId)
+        PatientProcedure patientProcedure = patientProcedureRepository.findById(patientProcedureId)
                 .orElseThrow(() -> {
-                    log.error("Treatment plan not found with ID: {}", treatmentPlanId);
-                    return new RuntimeException("Treatment plan not found");
+                    log.error("Patient procedure not found with ID: {}", patientProcedureId);
+                    return new RuntimeException("Patient procedure not found");
                 });
 
         LocalDate currentDate = LocalDate.now();
         
-        List<PaymentInstallment> existingInstallments = paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId);
+        List<PaymentInstallment> existingInstallments = paymentInstallmentRepository.findByPatientProcedureId(patientProcedureId);
         if (!existingInstallments.isEmpty()) {
-            log.debug("Deleting {} existing installments for treatment plan ID: {}", existingInstallments.size(), treatmentPlanId);
+            log.debug("Deleting {} existing installments for patient procedure ID: {}", existingInstallments.size(), patientProcedureId);
             paymentInstallmentRepository.deleteAll(existingInstallments);
         }
 
         // Create only one installment regardless of the installments count
         PaymentInstallment installment = PaymentInstallment.builder()
-                .treatmentPlan(treatmentPlan)
+                .patientProcedure(patientProcedure)
                 .dueDate(currentDate)
-                .amount(treatmentPlan.getFinalValue())
+                .amount(patientProcedure.getValue())
                 .paymentMethod(paymentMethod)
                 .installmentNumber(1)
                 .status(PaymentStatus.pending)
@@ -97,21 +125,21 @@ public class PaymentInstallmentService {
                 .build();
         
         paymentInstallmentRepository.save(installment);
-        log.info("Successfully updated installment for treatment plan ID: {}", treatmentPlanId);
+        log.info("Successfully updated installment for patient procedure ID: {}", patientProcedureId);
 
-        return paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
+        return paymentInstallmentRepository.findByPatientProcedureId(patientProcedureId)
                 .stream()
                 .map(paymentInstallmentMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<PaymentInstallmentDTO> getInstallmentsByTreatmentPlan(String treatmentPlanId) {
-        log.debug("Retrieving installments for treatment plan ID: {}", treatmentPlanId);
-        List<PaymentInstallmentDTO> result = paymentInstallmentRepository.findByTreatmentPlanId(treatmentPlanId)
+    public List<PaymentInstallmentDTO> getInstallmentsByPatientProcedure(String patientProcedureId) {
+        log.debug("Retrieving installments for patient procedure ID: {}", patientProcedureId);
+        List<PaymentInstallmentDTO> result = paymentInstallmentRepository.findByPatientProcedureId(patientProcedureId)
                 .stream()
                 .map(paymentInstallmentMapper::toDTO)
                 .collect(Collectors.toList());
-        log.debug("Found {} installments for treatment plan ID: {}", result.size(), treatmentPlanId);
+        log.debug("Found {} installments for patient procedure ID: {}", result.size(), patientProcedureId);
         return result;
     }
 

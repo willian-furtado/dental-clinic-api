@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AnamnesisResponseRepository extends JpaRepository<AnamnesisResponse, String> {
+    void deleteByPatientId(String patientId);
 }

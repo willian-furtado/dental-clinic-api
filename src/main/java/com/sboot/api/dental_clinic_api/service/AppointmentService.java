@@ -19,7 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -200,11 +203,19 @@ public class AppointmentService {
         log.info("Successfully deleted appointment with ID: {}", id);
     }
 
-    public Page<AppointmentDTO> getAll(Pageable pageable) {
-        log.debug("Retrieving all appointments with pagination: page={}, size={}", pageable.getPageNumber(), pageable.getPageSize());
-        Page<AppointmentDTO> result = appointmentRepository.findAll(pageable)
-                .map(appointmentMapper::toDto);
-        log.debug("Retrieved {} appointments", result.getTotalElements());
+    public List<AppointmentDTO> getAll(String startDate, String endDate) {
+        log.debug("Retrieving all appointments with filters: startDate={}, endDate={}", startDate, endDate);
+        
+        LocalDate start = startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : null;
+        LocalDate end = endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : null;
+        
+        List<Appointment> appointments = appointmentRepository.findAllByDateRange(start, end);
+        
+        List<AppointmentDTO> result = appointments.stream()
+                .map(appointmentMapper::toDto)
+                .collect(Collectors.toList());
+                
+        log.debug("Retrieved {} appointments", result.size());
         return result;
     }
 

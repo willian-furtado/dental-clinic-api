@@ -32,6 +32,7 @@ public class PatientService {
     private final AnamnesisQuestionRepository questionRepository;
     private final AnamnesisTemplateRepository anamnesisTemplateRepository;
     private final PatientAnamnesisRepository patientAnamnesisRepository;
+    private final AnamnesisResponseRepository anamnesisResponseRepository;
 
     private final PatientMapper patientMapper;
     private final AddressMapper addressMapper;
@@ -55,6 +56,7 @@ public class PatientService {
         return patientMapper.toDto(saved);
     }
 
+    @Transactional
     public PatientDTO update(String id, PatientDTO patientDTO) {
         log.info("Updating patient with ID: {}", id);
         Patient existing = patientRepository.findById(id)
@@ -63,9 +65,20 @@ public class PatientService {
         updateBasicInfo(existing, patientDTO);
         handlePhoto(existing, patientDTO);
 
-        PatientAddress address = addressMapper.toEntity(patientDTO.getAddress());
-        address.setPatient(existing);
-        existing.setAddress(address);
+        PatientAddress existingAddress = existing.getAddress();
+        PatientAddress addressDTO = addressMapper.toEntity(patientDTO.getAddress());
+        if (existingAddress != null) {
+            existingAddress.setStreet(addressDTO.getStreet());
+            existingAddress.setNumber(addressDTO.getNumber());
+            existingAddress.setComplement(addressDTO.getComplement());
+            existingAddress.setNeighborhood(addressDTO.getNeighborhood());
+            existingAddress.setCity(addressDTO.getCity());
+            existingAddress.setState(addressDTO.getState());
+            existingAddress.setZipCode(addressDTO.getZipCode());
+        } else {
+            addressDTO.setPatient(existing);
+            existing.setAddress(addressDTO);
+        }
 
         existing.getDocuments().clear();
         List<PatientDocument> documents = patientDTO.getDocuments().stream()
@@ -74,12 +87,35 @@ public class PatientService {
                 .toList();
         existing.getDocuments().addAll(documents);
 
-        List<AnamnesisResponse> responses = patientDTO.getAnamnesisResponses().stream()
-                .map(anamnesisResponseMapper::toEntity)
-                .peek(r -> r.setPatient(existing))
-                .toList();
+        anamnesisResponseRepository.deleteByPatientId(id);
+        anamnesisResponseRepository.flush();
+        
+        List<AnamnesisResponse> responses = new ArrayList<>();
+        if (patientDTO.getAnamnesisResponses() != null) {
+            for (AnamnesisResponseDTO responseDTO : patientDTO.getAnamnesisResponses()) {
+                AnamnesisResponse response = new AnamnesisResponse();
+                response.setPatient(existing);
 
-        existing.getAnamnesisResponses().clear();
+                if (responseDTO.getQuestionId() != null) {
+                    AnamnesisQuestion question = questionRepository.findById(responseDTO.getQuestionId())
+                            .orElseThrow(() -> new RuntimeException("Question not found"));
+                    response.setQuestion(question);
+                }
+
+                if (responseDTO.getSelectedOptionId() != null) {
+                    AnamnesisQuestionOption option = optionRepository.findById(responseDTO.getSelectedOptionId())
+                            .orElseThrow(() -> new RuntimeException("Option not found"));
+                    response.setSelectedOption(option);
+                }
+
+                response.setValue(responseDTO.getValue());
+                response.setExtraText(responseDTO.getExtraText());
+                response.setCreatedAt(LocalDateTime.now());
+
+                responses.add(response);
+            }
+        }
+        
         existing.getAnamnesisResponses().addAll(responses);
 
         Patient saved = patientRepository.save(existing);

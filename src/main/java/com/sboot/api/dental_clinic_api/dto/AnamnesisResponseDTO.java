@@ -15,6 +15,8 @@ public class AnamnesisResponseDTO {
 
     private String selectedOptionId;
 
+    private String questionType;
+
     private String value;
 
     private String extraText;

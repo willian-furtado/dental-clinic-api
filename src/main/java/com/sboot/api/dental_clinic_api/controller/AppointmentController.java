@@ -3,9 +3,9 @@ package com.sboot.api.dental_clinic_api.controller;
 import com.sboot.api.dental_clinic_api.dto.AppointmentDTO;
 import com.sboot.api.dental_clinic_api.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/appointments")
@@ -15,8 +15,10 @@ public class AppointmentController {
     private final AppointmentService appointmentService;
 
     @GetMapping
-    public Page<AppointmentDTO> getAll(Pageable pageable) {
-        return appointmentService.getAll(pageable);
+    public List<AppointmentDTO> getAll(
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        return appointmentService.getAll(startDate, endDate);
     }
 
     @GetMapping("/{id}")

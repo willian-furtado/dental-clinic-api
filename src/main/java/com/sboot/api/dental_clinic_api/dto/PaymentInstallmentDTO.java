@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 public class PaymentInstallmentDTO {
 
     private String id;
-    private String treatmentPlanId;
+    private String patientProcedureId;
     private LocalDate dueDate;
     private BigDecimal amount;
     private PaymentMethod paymentMethod;

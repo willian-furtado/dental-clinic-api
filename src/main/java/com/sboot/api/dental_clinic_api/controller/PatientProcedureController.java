@@ -1,7 +1,9 @@
 package com.sboot.api.dental_clinic_api.controller;
 
+import com.sboot.api.dental_clinic_api.dto.PatientProcedureAnnotationDTO;
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureDTO;
 import com.sboot.api.dental_clinic_api.dto.PatientProcedureResponseDTO;
+import com.sboot.api.dental_clinic_api.dto.PatientProcedureAnnotationDTO;
 import com.sboot.api.dental_clinic_api.dto.ProcedureDTO;
 import com.sboot.api.dental_clinic_api.service.PatientProcedureService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -122,5 +124,13 @@ public class PatientProcedureController {
             @RequestParam(defaultValue = "10") int size) {
         Page<ProcedureDTO> procedures = patientProcedureService.getProceduresByPatientId(patientId, page, size);
         return ResponseEntity.ok(procedures);
+    }
+
+    @PatchMapping("/{id}/annotation")
+    public ResponseEntity<PatientProcedureDTO> updateAnnotation(
+            @PathVariable String id,
+            @RequestBody PatientProcedureAnnotationDTO annotationDTO) {
+        PatientProcedureDTO updatedPatientProcedure = patientProcedureService.updateAnnotation(id, annotationDTO.getAnnotation());
+        return ResponseEntity.ok(updatedPatientProcedure);
     }
 }

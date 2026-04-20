@@ -24,8 +24,8 @@ public class PaymentInstallment {
     private String id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "treatment_plan_id", nullable = false)
-    private TreatmentPlan treatmentPlan;
+    @JoinColumn(name = "patient_procedure_id", nullable = false)
+    private PatientProcedure patientProcedure;
 
     @Column(nullable = false)
     private LocalDate dueDate;
