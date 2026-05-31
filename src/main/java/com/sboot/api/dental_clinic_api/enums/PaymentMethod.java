@@ -4,5 +4,6 @@ public enum PaymentMethod {
     pix,
     credit,
     debit,
-    money
+    money,
+    automatic_debit
 }

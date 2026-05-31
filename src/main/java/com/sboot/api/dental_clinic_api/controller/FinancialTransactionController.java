@@ -1,5 +1,6 @@
 package com.sboot.api.dental_clinic_api.controller;
 
+import com.sboot.api.dental_clinic_api.dto.DashboardResponseDTO;
 import com.sboot.api.dental_clinic_api.dto.FinancialTransactionDTO;
 import com.sboot.api.dental_clinic_api.dto.FinancialTransactionResponseDTO;
 import com.sboot.api.dental_clinic_api.enums.TransactionType;
@@ -79,5 +80,12 @@ public class FinancialTransactionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
         return ResponseEntity.ok(financialTransactionService.calculateBalance(startDate, endDate));
+    }
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<DashboardResponseDTO> getDashboard(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        return ResponseEntity.ok(financialTransactionService.getDashboard(startDate, endDate));
     }
 }

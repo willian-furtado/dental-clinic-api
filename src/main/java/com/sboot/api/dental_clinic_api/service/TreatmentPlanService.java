@@ -1,10 +1,6 @@
 package com.sboot.api.dental_clinic_api.service;
 
-import com.sboot.api.dental_clinic_api.dto.BudgetDTO;
-import com.sboot.api.dental_clinic_api.dto.TreatmentPlanContractDTO;
-import com.sboot.api.dental_clinic_api.dto.TreatmentPlanRequestDTO;
-import com.sboot.api.dental_clinic_api.dto.TreatmentPlanResponseDTO;
-import com.sboot.api.dental_clinic_api.dto.TreatmentPlanTermsDTO;
+import com.sboot.api.dental_clinic_api.dto.*;
 import com.sboot.api.dental_clinic_api.entity.*;
 import com.sboot.api.dental_clinic_api.enums.PatientProcedureStatus;
 import com.sboot.api.dental_clinic_api.enums.TreatmentPlanStatus;
@@ -122,6 +118,15 @@ public class TreatmentPlanService {
                     return new RuntimeException("TreatmentPlan not found with id: " + id);
                 });
 
+        boolean needsSignatureStatus = false;
+
+        if (areDifferent(existing.getFinalValue(), request.getFinalValue()) ||
+            areDifferent(existing.getPaymentDiscount(), request.getPaymentDiscount()) ||
+            areDifferent(existing.getPaymentDiscountType(), request.getPaymentDiscountType()) ||
+            areDifferent(existing.getPaymentDiscountAmount(), request.getPaymentDiscountAmount())) {
+            needsSignatureStatus = true;
+        }
+
         if (existing.getPatient() == null) {
             Patient patient = new Patient();
             patient.setId(request.getPatientId());
@@ -139,7 +144,11 @@ public class TreatmentPlanService {
         existing.setPaymentDiscount(request.getPaymentDiscount());
         existing.setPaymentDiscountType(request.getPaymentDiscountType());
         existing.setPaymentDiscountAmount(request.getPaymentDiscountAmount());
-        existing.setStatus(TreatmentPlanStatus.waiting_signature);
+
+        if (needsSignatureStatus) {
+            log.info("Relevant changes detected in Treatment Plan ID: {}, updating status to waiting_signature", id);
+            existing.setStatus(TreatmentPlanStatus.waiting_signature);
+        }
 
         if (request.getProcedures() != null) {
             procedureRepository.deleteByTreatmentPlanId(id);
@@ -357,5 +366,37 @@ public class TreatmentPlanService {
         TreatmentPlan saved = repository.save(treatmentPlan);
         log.info("Successfully saved contract and terms for treatment plan ID: {}", treatmentPlanId);
         return mapper.toResponseDTO(saved);
+    }
+
+    /**
+     * Método auxiliar para verificar se dois objetos são diferentes
+     * @param existing Valor atual na entidade
+     * @param request Novo valor vindo da requisição
+     * @return true se os valores forem diferentes, false caso contrário
+     */
+    private boolean areDifferent(Object existing, Object request) {
+        if (existing == null && request == null) {
+            return false;
+        }
+        if (existing == null || request == null) {
+            return true;
+        }
+        return !existing.equals(request);
+    }
+
+    /**
+     * Compara dois valores BigDecimal ignorando precisão decimal
+     * @param existing Valor atual na entidade
+     * @param request Novo valor vindo da requisição
+     * @return true se os valores forem diferentes, false caso contrário
+     */
+    private boolean areDifferent(BigDecimal existing, BigDecimal request) {
+        if (existing == null && request == null) {
+            return false;
+        }
+        if (existing == null || request == null) {
+            return true;
+        }
+        return existing.compareTo(request) != 0;
     }
 }

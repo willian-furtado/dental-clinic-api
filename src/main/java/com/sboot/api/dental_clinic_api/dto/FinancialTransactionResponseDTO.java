@@ -45,4 +45,6 @@ public class FinancialTransactionResponseDTO {
     private String supplier;
 
     private String notes;
+
+    private String recurringExpenseId;
 }

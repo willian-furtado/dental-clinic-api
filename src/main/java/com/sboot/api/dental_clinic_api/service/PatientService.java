@@ -80,15 +80,22 @@ public class PatientService {
             existing.setAddress(addressDTO);
         }
 
-        existing.getDocuments().clear();
+        if (existing.getDocuments() != null && !existing.getDocuments().isEmpty()) {
+            patientDocumentRepository.deleteAll(existing.getDocuments());
+            existing.getDocuments().clear();
+        }
         List<PatientDocument> documents = patientDTO.getDocuments().stream()
                 .map(documentMapper::toEntity)
-                .peek(d -> d.setPatient(existing))
+                .peek(d -> {
+                    d.setId(null);
+                    d.setPatient(existing);
+                })
                 .toList();
         existing.getDocuments().addAll(documents);
 
+        patientRepository.saveAndFlush(existing);
+
         anamnesisResponseRepository.deleteByPatientId(id);
-        anamnesisResponseRepository.flush();
         
         List<AnamnesisResponse> responses = new ArrayList<>();
         if (patientDTO.getAnamnesisResponses() != null) {

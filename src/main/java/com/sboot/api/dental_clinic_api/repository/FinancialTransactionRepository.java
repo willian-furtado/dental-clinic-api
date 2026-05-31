@@ -1,5 +1,6 @@
 package com.sboot.api.dental_clinic_api.repository;
 
+import com.sboot.api.dental_clinic_api.dto.DashboardResponseDTO;
 import com.sboot.api.dental_clinic_api.entity.FinancialTransaction;
 import com.sboot.api.dental_clinic_api.enums.TransactionType;
 import org.springframework.data.domain.Page;
@@ -37,7 +38,21 @@ public interface FinancialTransactionRepository extends JpaRepository<FinancialT
 
     List<FinancialTransaction> findByTypeAndDateBetween(TransactionType type, LocalDate startDate, LocalDate endDate);
 
+    @Query(value = "SELECT " +
+            "COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END), 0) AS totalRevenues, " +
+            "COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) AS totalExpenses, " +
+            "COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND recurring_expense_id IS NOT NULL THEN amount ELSE 0 END), 0) AS recurringExpenses, " +
+            "COALESCE(SUM(CASE WHEN type = 'EXPENSE' AND recurring_expense_id IS NULL THEN amount ELSE 0 END), 0) AS nonRecurringExpenses, " +
+            "COALESCE(SUM(CASE WHEN type = 'INCOME' THEN amount ELSE 0 END), 0) - " +
+            "COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) AS netProfit " +
+            "FROM financial_transactions " +
+            "WHERE date BETWEEN :startDate AND :endDate",
+            nativeQuery = true)
+    DashboardResponseDTO findDashboardByDateRange(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
     @Modifying
     @Query("DELETE FROM FinancialTransaction ft WHERE ft.patientProcedure.id = :patientProcedureId")
     void deleteByPatientProcedureId(@Param("patientProcedureId") String patientProcedureId);
+
+    boolean existsByRecurringExpenseIdAndDateBetween(String recurringExpenseId, LocalDate startDate, LocalDate endDate);
 }

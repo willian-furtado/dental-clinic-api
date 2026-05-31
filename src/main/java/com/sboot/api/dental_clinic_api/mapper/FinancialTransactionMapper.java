@@ -21,6 +21,7 @@ public interface FinancialTransactionMapper {
     @Mapping(target = "patientId", source = "patient.id")
     @Mapping(target = "patientProcedureId", source = "patientProcedure.id")
     @Mapping(target = "patientName", source = "patient.name")
+    @Mapping(target = "recurringExpenseId", source = "recurringExpense.id")
     FinancialTransactionResponseDTO toResponseDTO(FinancialTransaction entity);
 
     @Mapping(target = "id", ignore = true)

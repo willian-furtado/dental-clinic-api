@@ -69,4 +69,8 @@ public class FinancialTransaction {
 
     @Column(columnDefinition = "TEXT")
     private String notes;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "recurring_expense_id")
+    private RecurringExpense recurringExpense;
 }
